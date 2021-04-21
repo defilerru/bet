@@ -5,9 +5,9 @@ import (
 	"testing"
 )
 
-func assertBalanceEqual(p *Prediction, balance uint64, t *testing.T) {
-	if p.Balance != balance {
-		t.Fatalf("balnce not equal %d != %d", p.Balance, balance)
+func assertBalancesEqual(p *Prediction, b1 uint64, b2 uint64, t *testing.T) {
+	if p.Balance1 != b1 || p.Balance2 != b2 {
+		t.Fatalf("balnce not equal %d != %d, %d != %d", p.Balance1, b1, p.Balance2, b2)
 	}
 }
 
@@ -62,16 +62,16 @@ func TestAddDeleteBet(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	assertBalanceEqual(pred, 0, t)
+	assertBalancesEqual(pred, 0, 0, t)
 
 	err = pred.AddBet(Bet{UserId: 42, OnFirstOption: false, Amount: 1000})
 	assertNoError(err, t)
-	assertBalanceEqual(pred, 1000, t)
+	assertBalancesEqual(pred, 0, 1000, t)
 	assertBetEqual(42, 1000, false, pred, t)
 
 	err = pred.AddBet(Bet{UserId: 43, OnFirstOption: false, Amount: 2000})
 	assertNoError(err, t)
-	assertBalanceEqual(pred, 3000, t)
+	assertBalancesEqual(pred, 0, 3000, t)
 	assertBetEqual(43, 2000, false, pred, t)
 
 	err = pred.AddBet(Bet{UserId: 42, OnFirstOption: false, Amount: 1000})
@@ -79,7 +79,12 @@ func TestAddDeleteBet(t *testing.T) {
 
 	err = pred.DeleteBet(43)
 	assertNoError(err, t)
-	assertBalanceEqual(pred, 1000, t)
+	assertBalancesEqual(pred, 0, 1000, t)
+
+	err = pred.AddBet(Bet{UserId: 44, OnFirstOption: true, Amount: 200})
+	assertNoError(err, t)
+	assertBalancesEqual(pred, 200, 1000, t)
+	assertBetEqual(44, 200, true, pred, t)
 
 	err = pred.DeleteBet(43)
 	assertErrorInstance(err, &NotFound{}, t)

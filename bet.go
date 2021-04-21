@@ -1,5 +1,9 @@
 package bet
 
+import (
+	"time"
+)
+
 type UID uint64
 
 type Duplicate struct{}
@@ -21,14 +25,22 @@ func (d *NotFound) Error() string {
 }
 
 type Prediction struct {
-	Id      uint64
-	Name    string
-	Opt1    string
-	Opt2    string
-	Bets    map[UID]Bet
-	Balance uint64
+	Id   uint64
+	Name string
+	Opt1 string
+	Opt2 string
+	Bets map[UID]Bet
 
-	db DB
+	Balance1 uint64
+	Balance2 uint64
+
+	CreatedAt time.Time
+	StartedAt time.Time
+
+	StartDelaySeconds uint16
+
+	started bool
+	db      DB
 }
 
 type Bet struct {
@@ -58,7 +70,11 @@ func (p *Prediction) AddBet(bet Bet) error {
 		return err
 	}
 	p.Bets[bet.UserId] = bet
-	p.Balance += bet.Amount
+	if bet.OnFirstOption {
+		p.Balance1 += bet.Amount
+	} else {
+		p.Balance2 += bet.Amount
+	}
 	return nil
 }
 
@@ -72,6 +88,10 @@ func (p *Prediction) DeleteBet(uid UID) error {
 		return err
 	}
 	delete(p.Bets, uid)
-	p.Balance -= bet.Amount
+	if bet.OnFirstOption {
+		p.Balance1 -= bet.Amount
+	} else {
+		p.Balance2 -= bet.Amount
+	}
 	return nil
 }
