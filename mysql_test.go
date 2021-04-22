@@ -17,7 +17,7 @@ func TestCreateClosePrediction(t *testing.T) {
 	if *skipmysql {
 		t.Skip("skipmysql flag is not set")
 	}
-	db, err := NewMySQLDB("defiler@/defiler?parseTime=true&loc=Local")
+	db, err := NewMySQLDB("defiler@/defiler_test?parseTime=true&loc=Local")
 	if err != nil {
 		t.Fatalf("can't connect to skipmysql: %s", err)
 	}

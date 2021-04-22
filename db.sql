@@ -1,3 +1,5 @@
+USE defiler_test;
+
 DROP TABLE IF EXISTS bets;
 DROP TABLE IF EXISTS bets_users;
 DROP TABLE IF EXISTS predictions;
