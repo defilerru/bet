@@ -58,7 +58,7 @@ func (d *testDB) ClosePrediction(prediction *Prediction, opt1Won bool) error {
 
 func TestAddDeleteBet(t *testing.T) {
 	db := &testDB{}
-	pred, err := CreatePrediction("pre1", "o1", "o2", db)
+	pred, err := CreatePrediction("pre1", "o1", "o2", 40, db)
 	if err != nil {
 		t.Error(err)
 	}

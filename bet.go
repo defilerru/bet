@@ -49,12 +49,13 @@ type Bet struct {
 	OnFirstOption bool
 }
 
-func CreatePrediction(name string, opt1 string, opt2 string, db DB) (prediction *Prediction, err error) {
+func CreatePrediction(name string, opt1 string, opt2 string, startDelaySeconds uint16, db DB) (prediction *Prediction, err error) {
 	prediction = &Prediction{
 		Name: name,
 		Opt1: opt1,
 		Opt2: opt2,
 		Bets: map[UID]Bet{},
+		StartDelaySeconds: startDelaySeconds,
 		db:   db,
 	}
 	return prediction, db.CreatePrediction(prediction)
