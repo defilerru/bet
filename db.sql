@@ -6,6 +6,7 @@ DROP TABLE IF EXISTS predictions;
 
 CREATE TABLE predictions(
     id serial,
+    created_by bigint unsigned not null,
     created_at timestamp not null DEFAULT CURRENT_TIMESTAMP,
     started_at timestamp null,
     finished_at timestamp null,
@@ -15,6 +16,7 @@ CREATE TABLE predictions(
     option_2 char(32),
     winner ENUM('option_1', 'option_2'),
     start_delay_seconds smallint unsigned not null,
+    CONSTRAINT created_by_fk FOREIGN KEY(created_by) REFERENCES bets_users(id),
     PRIMARY KEY(id)
 ) engine = InnoDB;
 
