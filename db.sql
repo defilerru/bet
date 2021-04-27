@@ -1,8 +1,13 @@
-USE defiler_test;
+-- USE defiler_test;
 
 DROP TABLE IF EXISTS bets;
 DROP TABLE IF EXISTS bets_users;
 DROP TABLE IF EXISTS predictions;
+
+CREATE TABLE bets_users(
+    id serial,
+    balance bigint unsigned default null
+) ENGINE = InnoDB;
 
 CREATE TABLE predictions(
     id serial,
@@ -18,12 +23,7 @@ CREATE TABLE predictions(
     start_delay_seconds smallint unsigned not null,
     CONSTRAINT created_by_fk FOREIGN KEY(created_by) REFERENCES bets_users(id),
     PRIMARY KEY(id)
-) engine = InnoDB;
-
-CREATE TABLE bets_users(
-    id serial,
-    balance bigint unsigned default null
-) ENGINE = InnoDB;
+) engine = InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE bets(
     user_id bigint unsigned not null,
