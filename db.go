@@ -1,4 +1,4 @@
-package bet
+package main
 
 type DB interface {
 	CreatePrediction(prediction *Prediction) error

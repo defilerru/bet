@@ -1,1 +1,1 @@
-package bet
+package main

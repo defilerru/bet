@@ -1,4 +1,4 @@
-package bet
+package main
 
 import (
 	"reflect"
