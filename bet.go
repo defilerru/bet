@@ -1,4 +1,4 @@
-package bet
+package main
 
 import (
 	"time"
@@ -34,6 +34,7 @@ type Prediction struct {
 	Balance1 uint64
 	Balance2 uint64
 
+	CreatedBy uint64
 	CreatedAt time.Time
 	StartedAt time.Time
 
@@ -49,8 +50,9 @@ type Bet struct {
 	OnFirstOption bool
 }
 
-func CreatePrediction(name string, opt1 string, opt2 string, startDelaySeconds uint16, db DB) (prediction *Prediction, err error) {
+func CreatePrediction(name string, opt1 string, opt2 string, startDelaySeconds uint16, createdBy uint64, db DB) (prediction *Prediction, err error) {
 	prediction = &Prediction{
+		CreatedBy: createdBy,
 		Name: name,
 		Opt1: opt1,
 		Opt2: opt2,

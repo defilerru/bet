@@ -1,4 +1,4 @@
-package bet
+package main
 
 import (
 	"context"
@@ -14,7 +14,7 @@ type MySQLDB struct {
 }
 
 const (
-	stmtCreatePrediction = "INSERT INTO predictions(name, option_1, option_2, start_delay_seconds) VALUES(?,?,?,?)"
+	stmtCreatePrediction = "INSERT INTO predictions(name, option_1, option_2, start_delay_seconds, created_by) VALUES(?,?,?,?,?)"
 	stmtSelectPrediction = "SELECT created_at, started_at FROM predictions WHERE id = ?"
 	stmtCreateBet        = "INSERT INTO bets(user_id, prediction_id, amount, on_first_option) VALUES(?,?,?,?)"
 	stmtTakePayment      = "UPDATE bets_users SET balance=balance-? WHERE id=? AND balance>=?"
@@ -43,7 +43,7 @@ func NewMySQLDB(dataSourceName string) (*MySQLDB, error) {
 }
 
 func (m *MySQLDB) CreatePrediction(prediction *Prediction) error {
-	res, err := m.stmtCreatePrediction.Exec(prediction.Name, prediction.Opt1, prediction.Opt2, prediction.StartDelaySeconds)
+	res, err := m.stmtCreatePrediction.Exec(prediction.Name, prediction.Opt1, prediction.Opt2, prediction.StartDelaySeconds, prediction.CreatedBy)
 	if err != nil {
 		return err
 	}

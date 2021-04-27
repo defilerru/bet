@@ -1,4 +1,4 @@
-package bet
+package main
 
 import (
 	"flag"
@@ -21,7 +21,7 @@ func TestCreateClosePrediction(t *testing.T) {
 	if err != nil {
 		t.Fatalf("can't connect to skipmysql: %s", err)
 	}
-	prediction, err := CreatePrediction("Test 1", "Yes", "No", 40, db)
+	prediction, err := CreatePrediction("Test 1", "Yes", "No", 40, 1, db)
 	err = db.CreatePrediction(prediction)
 	if err != nil {
 		t.Fatalf("can't create prediction: %s", err)
