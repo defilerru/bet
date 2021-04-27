@@ -50,7 +50,7 @@ func NewClient(remoteAddr string, sid string, conn *websocket.Conn, db DB) (*Cli
 
 func (c *Client) HandleStartPrediction(message *Message) error {
 	//TODO: check permissions
-	//TODO: validate input (opt1 != opt2, etc)
+	//TODO: validate input (opt1 != opt2, duplicate name, etc)
 	startDelaySeconds, err := strconv.ParseInt(message.Args["delay"], 10, 16)
 	if err != nil {
 		return err
@@ -67,7 +67,13 @@ func (c *Client) HandleStartPrediction(message *Message) error {
 	c.Logf("prediction started '%s' id:%d", p.Name, p.Id)
 	msg := &Message{
 		Subject: subjPredictionStarted,
-		Args:    map[string]string{"name": message.Args["name"], "id": fmt.Sprintf("%d", p.Id)},
+		Args:    map[string]string{
+			"name": message.Args["name"],
+			"id": fmt.Sprintf("%d", p.Id),
+			"opt1": p.Opt1,
+			"opt2": p.Opt2,
+			"delay": fmt.Sprintf("%d", p.StartDelaySeconds),
+		},
 		Flags:   nil,
 	}
 	go clientList.Broadcast(msg)
