@@ -64,6 +64,7 @@ func (c *Client) HandleStartPrediction(message *Message) error {
 	if err != nil {
 		return err
 	}
+	c.Logf("prediction started '%s' id:%d", p.Name, p.Id)
 	msg := &Message{
 		Subject: subjPredictionStarted,
 		Args:    map[string]string{"name": message.Args["name"], "id": fmt.Sprintf("%d", p.Id)},
@@ -155,7 +156,7 @@ func echo(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		return
 	}
-	msg := &Message{}
+	message := &Message{}
 	for {
 		mt, data, err := c.ReadMessage()
 		if err != nil {
@@ -166,11 +167,12 @@ func echo(w http.ResponseWriter, r *http.Request) {
 			client.Logf("non text message received: %d", mt)
 			break
 		}
-		err = json.Unmarshal(data, msg)
+		err = json.Unmarshal(data, message)
 		if err != nil {
 			client.Logf("unable to decode message: %s", err)
 		}
-		err = client.HandleMessage(msg)
+		client.Logf("handling message %s", message)
+		err = client.HandleMessage(message)
 		if err != nil {
 			client.Logf("error handling message:", err)
 			break

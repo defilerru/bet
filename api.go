@@ -1,6 +1,9 @@
 package main
 
-import "encoding/json"
+import (
+	"encoding/json"
+	"fmt"
+)
 
 type Message struct {
 	Subject string            `json:"subject"`
@@ -11,4 +14,8 @@ type Message struct {
 func Unserialize(data []byte) (*Message, error) {
 	msg := &Message{}
 	return msg, json.Unmarshal(data, msg)
+}
+
+func (m *Message) String() string {
+	return fmt.Sprintf("%s %s %s", m.Subject, m.Args, m.Flags)
 }
