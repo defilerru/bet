@@ -1,8 +1,9 @@
-#chat {width: 4in;}
+#chat {width: 300px;}
 
 #defiler_bet {width: 100%; margin: 0; padding: 0; border: 0;}
 #defiler_bet div {margin: 0; padding: 0; width: 100%; }
 #betPredictionList div {padding: 0; margin: 1px; background-color: antiquewhite;}
-#betPredictionList div p {padding: 0; margin: 0;}
-#betPredictionList div p.predName {text-align: center; }
-#betPredictionList div span.predCountDown {float: left;}
+#betPredictionList p {padding: 0; margin: 0;}
+#betPredictionList p.predName {text-align: center;}
+#betPredictionList span.predCountDown {float: left;}
+#betPredictionList span.predictionId {color: red;}

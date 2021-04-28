@@ -2,6 +2,7 @@
 (function() {
     //document.cookie = "lol=ok";
 
+    let ws;
     let start_button = document.getElementById("pred_btn_start");
     let inputName = document.getElementById("pred_name");
     let inputOpt1 = document.getElementById("pred_opt1");
@@ -10,49 +11,71 @@
     let predictionsListDiv = document.getElementById("betPredictionList");
     let tickInterval = null;
 
+    let createElTextClass = function(parent, tagName, text, className) {
+        let el = document.createElement(tagName);
+        el.appendChild(document.createTextNode(text));
+        if (className !== "") {
+            el.setAttribute("class", className);
+        }
+        return parent.appendChild(el);
+    }
+
+    let getChildByClass = function(element, className) {
+        for (let i = 0; i < element.children.length; i++) {
+            let el = element.children[i];
+            if (el.getAttribute("class") === className) {
+                return el;
+            }
+        }
+    }
+
+    let bet = function (e) {
+        let idEl = getChildByClass(e.target.parentElement, "predictionId");
+        let amountEl = getChildByClass(e.target.parentElement, "predAmount");
+        ws.send(JSON.stringify({
+            subject: "BET",
+            args: {
+                id: idEl.textContent,
+                amount: amountEl.value,
+                opt1Win: "" + (e.target.className === "betOpt1")}
+        }));
+        console.log(e.target);
+    }
+
     let tickHandler = function() {
         for (let i = 0; i < predictionsListDiv.children.length; i++) {
             let pred = predictionsListDiv.children[i];
-            for (let j = 0; j < pred.children.length; j++){
-                c = pred.children[j];
-                if (c.getAttribute("class") === "predCountDown") {
-                    let count = parseInt(c.textContent);
-                    if (count === 0) {
-                        console.log("done");
-                    } else {
-                        c.textContent = count - 1;
-                    }
-                    console.log(c);
-                }
+            let c = getChildByClass(pred, "predCountDown")
+            let count = parseInt(c.textContent);
+            if (count === 0) {
+                //console.log("done");
+            } else {
+                c.textContent = count - 1;
             }
         }
     }
 
     let createPredictionElement = function(message) {
         let div = document.createElement("div");
-        let nameP = document.createElement("p");
-        nameP.setAttribute("class", "predName");
-        let countDown = document.createElement("span");
-        countDown.setAttribute("class", "predCountDown")
-        countDown.appendChild(document.createTextNode(message.args.delay));
-        nameP.appendChild(document.createTextNode(message.args.name));
-        let option1P = document.createElement("button");
-        option1P.appendChild(document.createTextNode(message.args.opt1));
-        let option2P = document.createElement("button");
-        option2P.appendChild(document.createTextNode(message.args.opt2));
+        let pid = createElTextClass(div, "span", message.args.id, "predictionId");
+        pid.setAttribute("hidden", "true"); //why css doesn't work?
+        createElTextClass(div, "span", message.args.delay, "predCountDown");
+        createElTextClass(div, "p", message.args.name, "predName");
+
+        let option1B = createElTextClass(div, "button", message.args.opt1, "betOpt1");
+        let option2B = createElTextClass(div, "button", message.args.opt2, "betOpt2");
+        option1B.addEventListener("click", bet);
+        option2B.addEventListener("click", bet);
+
         let amount = document.createElement("input");
+        amount.setAttribute("class", "predAmount");
         amount.setAttribute("type", "text");
         amount.setAttribute("value", "100");
-
-        div.appendChild(countDown);
-        div.appendChild(nameP);
         div.appendChild(amount);
-        div.appendChild(option1P);
-        div.appendChild(option2P);
+
         return div;
     }
 
-    let ws;
     let open = function () {
         console.log("connecting to ws...")
         ws = new WebSocket("ws:" + location.host + "/echo/");
@@ -61,7 +84,7 @@
             setTimeout(open, 5000);
         }
         ws.onmessage = function (e) {
-            var msg = JSON.parse(e.data);
+            let msg = JSON.parse(e.data);
             //TODO: handle parse error
             if (msg.subject === "PREDICTION_STARTED") {
                 let de = predictionsListDiv.appendChild(createPredictionElement(msg));
@@ -76,10 +99,20 @@
         ws.onopen = function (e) {
             console.log(e);
         }
+        ws.onerror = function (e) {
+            console.log(e);
+        }
     };
     open();
 
     let startPrediction = function(e) {
+        if (inputName.value === "" || inputOpt1.value === "" || inputOpt2.value === "") {
+            return;
+        }
+        let delay = parseInt(inputDelay.value);
+        if (delay > 300 || delay < 30) {
+            return;
+        }
         ws.send(JSON.stringify({
             "subject": "CREATE_PREDICTION",
             "args": {

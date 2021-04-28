@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"github.com/gorilla/websocket"
@@ -13,7 +14,11 @@ import (
 
 const (
 	subjStartPrediction   = "CREATE_PREDICTION"
+	subjBet = "BET"
+
 	subjPredictionStarted = "PREDICTION_STARTED"
+	subjBetAccepted = "BET_ACCEPTED"
+	subjPredictionChanged = "PREDICTION_CHANGED"
 )
 
 var upgrader = websocket.Upgrader{}
@@ -37,6 +42,7 @@ type ClientList struct {
 var clientList ClientList
 var clientListMutex sync.Mutex
 var db *MySQLDB
+var activePredictions map[uint64]*Prediction
 
 func NewClient(remoteAddr string, sid string, conn *websocket.Conn, db DB) (*Client, error) {
 	client := &Client{}
@@ -46,6 +52,43 @@ func NewClient(remoteAddr string, sid string, conn *websocket.Conn, db DB) (*Cli
 	client.Conn = conn
 	client.db = db
 	return client, nil
+}
+
+func (c *Client) HandleBet(message *Message) error {
+	pIdStr, ok := message.Args["id"]
+	if !ok {
+		return errors.New("prediction Id is not set")
+	}
+	pId, err := strconv.ParseInt(pIdStr, 10, 64)
+	if err != nil {
+		return fmt.Errorf("can't parse prediction id: %s", err)
+	}
+	p, ok := activePredictions[uint64(pId)]
+	if !ok {
+		return fmt.Errorf("prediction with id %d not found", pId)
+	}
+	amount, err := strconv.ParseInt(message.Args["amount"], 10, 64)
+	if err != nil {
+		return fmt.Errorf("can't parse amount: %s", err)
+	}
+	bet := Bet{
+		UserId:        UID(c.UserID),
+		Amount:        uint64(amount),
+		OnFirstOption: false,
+	}
+	err = p.AddBet(bet)
+	if err != nil {
+		return fmt.Errorf("can't add bet: %w", err)
+	}
+	msg := &Message{
+		Subject: subjPredictionChanged,
+		Args:    map[string]string{
+			"Id": fmt.Sprintf("%d", p.Id),
+		},
+		Flags:   nil,
+	}
+	clientList.Broadcast(msg)
+	return nil
 }
 
 func (c *Client) HandleStartPrediction(message *Message) error {
@@ -64,6 +107,7 @@ func (c *Client) HandleStartPrediction(message *Message) error {
 	if err != nil {
 		return err
 	}
+	activePredictions[p.Id] = p
 	c.Logf("prediction started '%s' id:%d", p.Name, p.Id)
 	msg := &Message{
 		Subject: subjPredictionStarted,
@@ -88,10 +132,10 @@ func (c *Client) HandleMessage(message *Message) error {
 	switch message.Subject {
 	case subjStartPrediction:
 		return c.HandleStartPrediction(message)
+	case subjBet:
+		return c.HandleBet(message)
 	}
-	err := fmt.Errorf("unknown msg subject: %s", message.Subject)
-	c.Logf("error handling message: %s", err)
-	return err
+	return fmt.Errorf("unknown msg subject: %s", message.Subject)
 }
 
 func (c *Client) String() string {
@@ -131,6 +175,9 @@ func main() {
 	flag.Parse()
 	log.SetFlags(0)
 	http.HandleFunc("/echo/", echo)
+
+	activePredictions = map[uint64]*Prediction{}
+
 	fs := http.FileServer(http.Dir("html"))
 	var err error
 	db, err = NewMySQLDB("defiler@/defiler?parseTime=true&loc=Local")
@@ -162,26 +209,33 @@ func echo(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		return
 	}
-	message := &Message{}
+	var message Message
 	for {
+		message = Message{}
 		mt, data, err := c.ReadMessage()
 		if err != nil {
-			client.Logf("read error: ", err)
+			e, ok := err.(*websocket.CloseError)
+			if ok {
+				client.Logf("disconnected: %s", e)
+			} else {
+				client.Logf("read error: %s")
+			}
 			break
 		}
 		if mt != websocket.TextMessage {
 			client.Logf("non text message received: %d", mt)
-			break
+			continue
 		}
-		err = json.Unmarshal(data, message)
+		err = json.Unmarshal(data, &message)
 		if err != nil {
-			client.Logf("unable to decode message: %s", err)
+			client.Logf("unable to decode message: %s (%s)", err, data)
+			continue
 		}
 		client.Logf("handling message %s", message)
-		err = client.HandleMessage(message)
+		err = client.HandleMessage(&message)
 		if err != nil {
-			client.Logf("error handling message:", err)
-			break
+			client.Logf("error handling message: %s", err)
+			continue
 		}
 	}
 }
