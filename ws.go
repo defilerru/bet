@@ -80,6 +80,7 @@ func (c *Client) HandleBet(message *Message) error {
 	if err != nil {
 		return fmt.Errorf("can't add bet: %w", err)
 	}
+	c.Logf("bet accepted: %s", bet)
 	msg := &Message{
 		Subject: subjPredictionChanged,
 		Args:    map[string]string{
@@ -88,7 +89,11 @@ func (c *Client) HandleBet(message *Message) error {
 		Flags:   nil,
 	}
 	clientList.Broadcast(msg)
-	return nil
+	msg.Subject = subjBetAccepted
+	msg.Args = map[string]string{
+		"predictionId": fmt.Sprintf("%d", p.Id),
+	}
+	return c.Conn.WriteJSON(msg)
 }
 
 func (c *Client) HandleStartPrediction(message *Message) error {
