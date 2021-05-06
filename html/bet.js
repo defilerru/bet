@@ -78,7 +78,8 @@
 
     let open = function () {
         console.log("connecting to ws...")
-        ws = new WebSocket("ws:" + location.host + "/echo/");
+
+        ws = new WebSocket("ws:" + location.host + "/echo/"+window.location.search);
         ws.onclose = function (e) {
             console.log(e);
             setTimeout(open, 5000);
@@ -107,6 +108,8 @@
 
     let startPrediction = function(e) {
         if (inputName.value === "" || inputOpt1.value === "" || inputOpt2.value === "") {
+            //TODO: display error
+            console.log("start prediction: invalid input");
             return;
         }
         let delay = parseInt(inputDelay.value);

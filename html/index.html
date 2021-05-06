@@ -2,12 +2,14 @@
 <head>
     <link rel="stylesheet" href="bet.css">
 </head>
-<h2>ok</h2>
 
-<div id="chat">
+<div id="chat_container">
+
+<div id="chat_header">chat header</div>
+
+<div id="chat_scrollable">
 
 <div id="defiler_bet">
-
     <div class="betStartPrediction">
         <table>
             <tr><td><label for="pred_name">Name</label></td><td><input id="pred_name" type="text" /></td></tr>
@@ -15,13 +17,31 @@
             <tr><td><label for="pred_opt2">Opt2</label></td><td><input id="pred_opt2" type="text" /></td></tr>
             <tr><td><label for="pred_delay">Delay seconds</label></td><td><input  id="pred_delay" type="text" value="60"/></td></tr>
         </table>
-    <button id="pred_btn_start">Start prediction</button>
+        <button id="pred_btn_start">Start prediction</button>
     </div>
+    <div id="betPredictionList"></div>
+</div>
 
-    <div id="betPredictionList" />
+<div id="chat_content">
+    <p>whatever</p><p>whatever</p><p>whatever</p><p>whatever</p><p>whatever</p><p>whatever</p><p>whatever</p><p>whatever</p>
+    <p>whatever</p><p>whatever</p><p>whatever</p><p>whatever</p><p>whatever</p><p>whatever</p><p>whatever</p><p>whatever</p>
+    <p>whatever</p><p>whatever</p><p>whatever</p><p>whatever</p><p>whatever</p><p>whatever</p><p>whatever</p><p>whatever</p>
+    <p>whatever</p><p>whatever</p><p>whatever</p><p>whatever</p><p>whatever</p><p>whatever</p><p>whatever</p><p>whatever</p>
+    <p>whatever</p><p>whatever</p><p>whatever</p><p>whatever</p><p>whatever</p><p>whatever</p><p>whatever</p><p>whatever</p>
+    <p>whatever</p><p>whatever</p><p>whatever</p><p>whatever</p><p>whatever</p><p>whatever</p><p>whatever</p><p>whatever</p>
+    <p>whatever</p><p>whatever</p><p>whatever</p><p>whatever</p><p>whatever</p><p>whatever</p><p>whatever</p><p>whatever</p>
+    <p>whatever</p><p>whatever</p><p>whatever</p><p>whatever</p><p>whatever</p><p>whatever</p><p>whatever</p><p>whatever</p>
+    <p>whatever</p><p>whatever</p><p>whatever</p><p>whatever</p><p>whatever</p><p>whatever</p><p>whatever</p><p>whatever</p>
+</div>
 
 </div>
 
+<div id="chat_footer">chat footer<input type=text value="whatever"></input><button>send</button></div>
+
+</div>
+
+<div id="stream">
+    123
 </div>
 
 <script type="text/javascript" src="bet.js"></script>
