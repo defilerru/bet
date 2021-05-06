@@ -23,12 +23,12 @@ const (
 
 var upgrader = websocket.Upgrader{}
 
-var addr = flag.String("addr", "localhost:8080", "http service address")
+var addr = flag.String("addr", "127.0.0.1:8080", "http service address")
 
 type Client struct {
 	RemoteAddr string
 	Username   string
-	UserID     int64
+	UserID     UID
 	Conn       *websocket.Conn
 
 	db    DB
@@ -44,11 +44,11 @@ var clientListMutex sync.Mutex
 var db *MySQLDB
 var activePredictions map[uint64]*Prediction
 
-func NewClient(remoteAddr string, sid string, conn *websocket.Conn, db DB) (*Client, error) {
+func NewClient(remoteAddr string, uid UID, conn *websocket.Conn, db DB) (*Client, error) {
 	client := &Client{}
 	client.RemoteAddr = remoteAddr
 	client.Username = "-" //TODO
-	client.UserID = 42    //TODO
+	client.UserID = uid    //TODO
 	client.Conn = conn
 	client.db = db
 	return client, nil
@@ -190,7 +190,18 @@ func main() {
 		log.Fatalf("unable to connect db: %s", err)
 	}
 	http.Handle("/", fs)
+	log.Printf("Starting server at %s", *addr)
 	log.Fatal(http.ListenAndServe(*addr, nil))
+}
+
+func getUID(r *http.Request) (UID, error) {
+	uidRaw := r.URL.Query()["uid"]
+	log.Printf("%+v", uidRaw)
+	if len(uidRaw) == 0 {
+		return -1, nil
+	}
+	uid, err := strconv.ParseInt(uidRaw[0], 10, 8)
+	return UID(uid), err
 }
 
 func echo(w http.ResponseWriter, r *http.Request) {
@@ -199,7 +210,12 @@ func echo(w http.ResponseWriter, r *http.Request) {
 		log.Print("upgrade error:", err)
 		return
 	}
-	client, err := NewClient(r.RemoteAddr, "todo", c, db)
+	uid, err := getUID(r)
+	if err != nil {
+		log.Println("can't get UID")
+		return
+	}
+	client, err := NewClient(r.RemoteAddr, uid, c, db)
 	if err != nil {
 		log.Printf("Failed to create client instance: %s (%s)", err, r.RemoteAddr)
 		err = c.Close()

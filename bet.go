@@ -4,7 +4,7 @@ import (
 	"time"
 )
 
-type UID uint64
+type UID int64
 
 type Duplicate struct{}
 
