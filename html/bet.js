@@ -10,6 +10,9 @@
     let inputDelay = document.getElementById("pred_delay");
     let predictionsListDiv = document.getElementById("betPredictionList");
     let tickInterval = null;
+    let gasAmountP = document.createElement("p");
+    let gasAmountTextNode = document.createTextNode("0");
+    gasAmountP.appendChild(gasAmountTextNode);
 
     let createElTextClass = function(parent, tagName, text, className) {
         let el = document.createElement(tagName);
@@ -50,28 +53,29 @@
             if (count === 0) {
                 //console.log("done");
             } else {
-                c.textContent = count - 1;
+                c.textContent = "" + (count - 1);
             }
         }
     }
 
     let createPredictionElement = function(message) {
         let div = document.createElement("div");
+        div.setAttribute("class", "betPrediction");
         let pid = createElTextClass(div, "span", message.args.id, "predictionId");
         pid.setAttribute("hidden", "true"); //why css doesn't work?
         createElTextClass(div, "span", message.args.delay, "predCountDown");
         createElTextClass(div, "p", message.args.name, "predName");
 
+        let amount = document.createElement("input");
+        amount.setAttribute("class", "predAmount");
+        amount.setAttribute("type", "number");
+        amount.setAttribute("value", "100");
+        div.appendChild(amount);
+
         let option1B = createElTextClass(div, "button", message.args.opt1, "betOpt1");
         let option2B = createElTextClass(div, "button", message.args.opt2, "betOpt2");
         option1B.addEventListener("click", bet);
         option2B.addEventListener("click", bet);
-
-        let amount = document.createElement("input");
-        amount.setAttribute("class", "predAmount");
-        amount.setAttribute("type", "text");
-        amount.setAttribute("value", "100");
-        div.appendChild(amount);
 
         return div;
     }

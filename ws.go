@@ -19,6 +19,7 @@ const (
 	subjPredictionStarted = "PREDICTION_STARTED"
 	subjBetAccepted = "BET_ACCEPTED"
 	subjPredictionChanged = "PREDICTION_CHANGED"
+	subjGasInfo = "GAS_INFO"
 )
 
 var upgrader = websocket.Upgrader{}
@@ -143,6 +144,18 @@ func (c *Client) HandleMessage(message *Message) error {
 	return fmt.Errorf("unknown msg subject: %s", message.Subject)
 }
 
+func (c *Client) SendGasInfo() error {
+	gas, err := c.db.GetGasInfo(c.UserID)
+	if err != nil {
+		return err
+	}
+	return c.Conn.WriteJSON(Message{
+		Subject: subjGasInfo,
+		Args:    map[string]string{"gas": fmt.Sprintf("%d", gas)},
+		Flags:   nil,
+	})
+}
+
 func (c *Client) String() string {
 	return fmt.Sprintf("%s %s[%d]", c.RemoteAddr, c.Username, c.UserID)
 }
@@ -227,6 +240,10 @@ func echo(w http.ResponseWriter, r *http.Request) {
 	client.Logf("connected")
 	defer client.Close()
 	err = clientList.Push(client)
+	if err != nil {
+		return
+	}
+	err = client.SendGasInfo()
 	if err != nil {
 		return
 	}
