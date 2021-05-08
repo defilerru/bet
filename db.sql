@@ -1,11 +1,12 @@
 -- USE defiler_test;
 
 DROP TABLE IF EXISTS bets;
-DROP TABLE IF EXISTS bets_users;
 DROP TABLE IF EXISTS predictions;
+DROP TABLE IF EXISTS bets_users;
 
 CREATE TABLE bets_users(
     id serial,
+    username char(32),
     balance bigint unsigned default null
 ) ENGINE = InnoDB;
 
@@ -16,9 +17,9 @@ CREATE TABLE predictions(
     started_at timestamp null,
     finished_at timestamp null,
     error text default null,
-    name char(64),
-    option_1 char(32),
-    option_2 char(32),
+    name char(32),
+    option_1 char(16),
+    option_2 char(16),
     winner ENUM('option_1', 'option_2'),
     start_delay_seconds smallint unsigned not null,
     CONSTRAINT created_by_fk FOREIGN KEY(created_by) REFERENCES bets_users(id),
@@ -36,7 +37,7 @@ CREATE TABLE bets(
     CONSTRAINT pred_id_fk FOREIGN KEY(prediction_id) REFERENCES predictions(id)
 ) engine = InnoDB;
 
-INSERT INTO bets_users (id, balance) VALUES (41, 10000);
-INSERT INTO bets_users (id, balance) VALUES (42, 10000);
-INSERT INTO bets_users (id, balance) VALUES (43, 10000);
-INSERT INTO bets_users (id, balance) VALUES (44, 10000);
+INSERT INTO bets_users (id, balance, username) VALUES (41, 10000, "user41");
+INSERT INTO bets_users (id, balance, username) VALUES (42, 10000, "user42");
+INSERT INTO bets_users (id, balance, username) VALUES (43, 10000, "user43");
+INSERT INTO bets_users (id, balance, username) VALUES (44, 10000, "user44");

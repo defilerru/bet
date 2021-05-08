@@ -30,6 +30,7 @@ type Client struct {
 	RemoteAddr string
 	Username   string
 	UserID     UID
+	Balance    int64
 	Conn       *websocket.Conn
 
 	db    DB
@@ -45,14 +46,26 @@ var clientListMutex sync.Mutex
 var db *MySQLDB
 var activePredictions map[uint64]*Prediction
 
-func NewClient(remoteAddr string, uid UID, conn *websocket.Conn, db DB) (*Client, error) {
+func NewClient(r *http.Request, conn *websocket.Conn, db DB) (*Client, error) {
+
 	client := &Client{}
-	client.RemoteAddr = remoteAddr
-	client.Username = "-" //TODO
-	client.UserID = uid    //TODO
+	client.RemoteAddr = r.RemoteAddr
 	client.Conn = conn
 	client.db = db
-	return client, nil
+
+	var uid int64
+	uidRaw := r.URL.Query()["uid"]
+	if len(uidRaw) == 0 {
+		uid = -1
+	}
+	uid, err := strconv.ParseInt(uidRaw[0], 10, 8)
+	if err != nil {
+		uid = -1
+	}
+
+	client.UserID = UID(uid)
+	err = db.GetUserInfo(UID(uid), &client.Balance, &client.Username)
+	return client, err
 }
 
 func (c *Client) HandleBet(message *Message) error {
@@ -145,13 +158,9 @@ func (c *Client) HandleMessage(message *Message) error {
 }
 
 func (c *Client) SendGasInfo() error {
-	gas, err := c.db.GetGasInfo(c.UserID)
-	if err != nil {
-		return err
-	}
 	return c.Conn.WriteJSON(Message{
 		Subject: subjGasInfo,
-		Args:    map[string]string{"gas": fmt.Sprintf("%d", gas)},
+		Args:    map[string]string{"gas": fmt.Sprintf("%d", c.Balance)},
 		Flags:   nil,
 	})
 }
@@ -213,14 +222,6 @@ func main() {
 	log.Fatal(http.ListenAndServe(*addr, nil))
 }
 
-func getUID(r *http.Request) (UID, error) {
-	uidRaw := r.URL.Query()["uid"]
-	if len(uidRaw) == 0 {
-		return -1, nil
-	}
-	uid, err := strconv.ParseInt(uidRaw[0], 10, 8)
-	return UID(uid), err
-}
 
 func echo(w http.ResponseWriter, r *http.Request) {
 	c, err := upgrader.Upgrade(w, r, nil)
@@ -228,12 +229,7 @@ func echo(w http.ResponseWriter, r *http.Request) {
 		log.Print("upgrade error:", err)
 		return
 	}
-	uid, err := getUID(r)
-	if err != nil {
-		log.Println("can't get UID")
-		return
-	}
-	client, err := NewClient(r.RemoteAddr, uid, c, db)
+	client, err := NewClient(r, c, db)
 	if err != nil {
 		log.Printf("Failed to create client instance: %s (%s)", err, r.RemoteAddr)
 		err = c.Close()
