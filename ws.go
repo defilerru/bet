@@ -181,12 +181,15 @@ func (cl *ClientList) Push(client *Client) error {
 }
 
 func (cl *ClientList) Broadcast(msg *Message) {
+	log.Printf("sending message to %d clients", len(cl.Clients))
 	for _, c := range cl.Clients {
 		err := c.Conn.WriteJSON(msg)
+		c.Logf("sending: %s <- %+v", c, msg)
 		if err != nil {
 			c.Logf("broadcast: failed to send: %s", err)
 		}
 	}
+	log.Printf("done")
 }
 
 func main() {
