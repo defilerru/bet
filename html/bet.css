@@ -18,3 +18,7 @@ input, button { border: 1px solid; }
 #betPredictionList p.predName {text-align: center;}
 #betPredictionList span.predCountDown {float: left; font-size: 18pt; }
 #betPredictionList span.predictionId {color: red;}
+
+#betPredictionList table td:nth-child(1) {text-align: right; width: 40%; }
+#betPredictionList table td:nth-child(2) {text-align: center; white-space: nowrap; }
+#betPredictionList table td:nth-child(3) {text-align: left; width: 40%; }

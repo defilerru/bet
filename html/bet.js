@@ -23,6 +23,15 @@
         return parent.appendChild(el);
     }
 
+    let createAndAttach = function(parent, tagName, attributes) {
+        let el = document.createElement(tagName);
+        parent.appendChild(el);
+        for (const [attr, value] of Object.entries(attributes)) {
+            el.setAttribute(attr, value);
+        }
+        return el
+    }
+
     let getChildByClass = function(element, className) {
         for (let i = 0; i < element.children.length; i++) {
             let el = element.children[i];
@@ -32,7 +41,7 @@
         }
     }
 
-    let bet = function (e) {
+    const bet = (e) => {
         let idEl = getChildByClass(e.target.parentElement, "predictionId");
         let amountEl = getChildByClass(e.target.parentElement, "predAmount");
         ws.send(JSON.stringify({
@@ -45,7 +54,7 @@
         console.log(e.target);
     }
 
-    let tickHandler = function() {
+    const tickHandler = () => {
         for (let i = 0; i < predictionsListDiv.children.length; i++) {
             let pred = predictionsListDiv.children[i];
             let c = getChildByClass(pred, "predCountDown")
@@ -58,29 +67,41 @@
         }
     }
 
-    let createPredictionElement = function(message) {
-        let div = document.createElement("div");
-        div.setAttribute("class", "betPrediction");
-        let pid = createElTextClass(div, "span", message.args.id, "predictionId");
-        pid.setAttribute("hidden", "true"); //why css doesn't work?
-        createElTextClass(div, "span", message.args.delay, "predCountDown");
-        createElTextClass(div, "p", message.args.name, "predName");
-
-        let amount = document.createElement("input");
-        amount.setAttribute("class", "predAmount");
-        amount.setAttribute("type", "number");
-        amount.setAttribute("value", "100");
-        div.appendChild(amount);
-
-        let option1B = createElTextClass(div, "button", message.args.opt1, "betOpt1");
-        let option2B = createElTextClass(div, "button", message.args.opt2, "betOpt2");
-        option1B.addEventListener("click", bet);
-        option2B.addEventListener("click", bet);
-
-        return div;
+    const createAppendEl = (parent, tagName, el) => {
+        let e = document.createElement(tagName);
+        e.appendChild(el);
+        parent.appendChild(e);
+        return e;
     }
 
-    let open = function () {
+    const createBetRow = (table, name, el1, el2) => {
+        let tr = document.createElement("tr");
+        let td1 = createAppendEl(tr, "td", el1);
+        let tdc = createAppendEl(tr, "td", createElTextClass(tr, "span", name, ""));
+        let td2 = createAppendEl(tr, "td", el2);
+        table.appendChild(tr);
+    }
+
+    const createBetInfoRow = (table, name) => {
+        let tr = document.createElement("tr");
+        let td1 = createAppendEl(tr, "td", createElTextClass(tr, "span", "-", name + "_1"));
+        let tdc = createAppendEl(tr, "td", createElTextClass(tr, "span", name, ""));
+        let td2 = createAppendEl(tr, "td", createElTextClass(tr, "span", "-", name + "_2"));
+        table.appendChild(tr);
+    }
+
+    const createPredictionElement = (message) => {
+        let table = document.createElement("table");
+        let th = createElTextClass(table, "th", message.args.name, "");
+        th.setAttribute("colspan", 3);
+        createBetInfoRow(table, "G");
+        createBetInfoRow(table, "#");
+        createBetInfoRow(table, "%");
+        createBetInfoRow(table, "/");
+        return table;
+    }
+
+    const open = () => {
         console.log("connecting to ws...")
 
         ws = new WebSocket("ws:" + location.host + "/echo/"+window.location.search);
@@ -97,7 +118,7 @@
             }
             console.log(msg);
             if (tickInterval === null) {
-                tickInterval = setInterval(tickHandler, 1000);
+                //tickInterval = setInterval(tickHandler, 1000);
                 console.log(tickInterval);
             }
         }
@@ -110,7 +131,7 @@
     };
     open();
 
-    let startPrediction = function(e) {
+    const startPrediction = (e) => {
         if (inputName.value === "" || inputOpt1.value === "" || inputOpt2.value === "") {
             //TODO: display error
             console.log("start prediction: invalid input");
