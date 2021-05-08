@@ -168,6 +168,8 @@ func (c *Client) Close() {
 	clientListMutex.Lock()
 	defer clientListMutex.Unlock()
 	length := len(clientList.Clients)
+	clientList.Clients[c.index] = clientList.Clients[length-1]
+	clientList.Clients[c.index].index = c.index
 	clientList.Clients[length-1] = clientList.Clients[c.index]
 	clientList.Clients = clientList.Clients[:length-1]
 }
@@ -182,11 +184,12 @@ func (cl *ClientList) Push(client *Client) error {
 
 func (cl *ClientList) Broadcast(msg *Message) {
 	log.Printf("sending message to %d clients", len(cl.Clients))
+	log.Printf("message: %+v", msg)
 	for _, c := range cl.Clients {
 		err := c.Conn.WriteJSON(msg)
-		c.Logf("sending: %s <- %+v", c, msg)
 		if err != nil {
-			c.Logf("broadcast: failed to send: %s", err)
+			c.Logf("broadcast: failed to send: %s. Closing connection", err)
+			c.Close()
 		}
 	}
 	log.Printf("done")
@@ -212,7 +215,6 @@ func main() {
 
 func getUID(r *http.Request) (UID, error) {
 	uidRaw := r.URL.Query()["uid"]
-	log.Printf("%+v", uidRaw)
 	if len(uidRaw) == 0 {
 		return -1, nil
 	}
