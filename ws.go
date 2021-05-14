@@ -162,7 +162,7 @@ func (c *Client) HandleMessage(message *Message) error {
 }
 
 func (c *Client) SendUserInfo() error {
-	var flags []string
+	flags := make([]string, 0)
 	if c.Moderator {
 		flags = append(flags, canCreatePredictions)
 	}

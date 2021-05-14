@@ -15,7 +15,7 @@
     let gasAmountTextNode = document.createTextNode("0");
     gasAmountP.appendChild(gasAmountTextNode);
 
-    let createElTextClass = function(parent, tagName, text, className) {
+    const createElTextClass = (parent, tagName, text, className) => {
         let el = document.createElement(tagName);
         el.appendChild(document.createTextNode(text));
         if (className !== "") {
@@ -33,7 +33,7 @@
         return el
     }
 
-    let getChildByClass = function(element, className) {
+    const getChildByClass = (element, className) => {
         for (let i = 0; i < element.children.length; i++) {
             let el = element.children[i];
             if (el.getAttribute("class") === className) {
@@ -56,15 +56,14 @@
     }
 
     const tickHandler = () => {
-        for (let i = 0; i < predictionsListDiv.children.length; i++) {
-            let pred = predictionsListDiv.children[i];
-            let c = getChildByClass(pred, "predCountDown")
-            let count = parseInt(c.textContent);
+        let els = document.getElementsByClassName("predCountDown");
+        for (let i = 0; i < els.length; i++) {
+            let count = parseInt(els[i].textContent) - 1;
             if (count === 0) {
-                //console.log("done");
-            } else {
-                c.textContent = "" + (count - 1);
+                console.log("done");
+                //TODO: deactivate
             }
+            els[i].textContent = "" + count;
         }
     }
 
@@ -96,6 +95,7 @@
         table.setAttribute("cellspacing", "0");
         table.setAttribute("cellpadding", "0");
         let th = createElTextClass(table, "th", message.args.name, "");
+        createElTextClass(th, "span", message.args.delay, "predCountDown");
         th.setAttribute("colspan", 3);
         createBetInfoRow(table, "G");
         createBetInfoRow(table, "#");
@@ -114,6 +114,7 @@
         }
         ws.onmessage = function (e) {
             let msg = JSON.parse(e.data);
+            console.log(msg);
             //TODO: handle parse error
             if (msg.subject === "PREDICTION_STARTED") {
                 let de = predictionsListDiv.appendChild(createPredictionElement(msg));
@@ -124,9 +125,8 @@
                     startPredictionElement.style.display = "block";
                 }
             }
-            console.log(msg);
             if (tickInterval === null) {
-                //tickInterval = setInterval(tickHandler, 1000);
+                tickInterval = setInterval(tickHandler, 1000);
                 console.log(tickInterval);
             }
         }
