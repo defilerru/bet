@@ -92,6 +92,8 @@
 
     const createPredictionElement = (message) => {
         let table = document.createElement("table");
+        table.setAttribute("cellspacing", "0");
+        table.setAttribute("cellpadding", "0");
         let th = createElTextClass(table, "th", message.args.name, "");
         th.setAttribute("colspan", 3);
         createBetInfoRow(table, "G");

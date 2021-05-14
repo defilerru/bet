@@ -25,6 +25,7 @@ const (
 var upgrader = websocket.Upgrader{}
 
 var addr = flag.String("addr", "127.0.0.1:8080", "http service address")
+var allowedOrigin = flag.String("origin", "http://localhost:8080", "allowed origin")
 
 type Client struct {
 	RemoteAddr string
@@ -46,23 +47,21 @@ var clientListMutex sync.Mutex
 var db *MySQLDB
 var activePredictions map[uint64]*Prediction
 
-func NewClient(r *http.Request, conn *websocket.Conn, db DB) (*Client, error) {
-
+func NewClient(r *http.Request, db DB) (*Client, error) {
+	var uid int64
+	var err error
 	client := &Client{}
 	client.RemoteAddr = r.RemoteAddr
-	client.Conn = conn
 	client.db = db
-
-	var uid int64
 	uidRaw := r.URL.Query()["uid"]
 	if len(uidRaw) == 0 {
 		uid = -1
+	} else {
+		uid, err = strconv.ParseInt(uidRaw[0], 10, 8)
 	}
-	uid, err := strconv.ParseInt(uidRaw[0], 10, 8)
 	if err != nil {
 		uid = -1
 	}
-
 	client.UserID = UID(uid)
 	err = db.GetUserInfo(UID(uid), &client.Balance, &client.Username)
 	return client, err
@@ -224,20 +223,25 @@ func main() {
 
 
 func echo(w http.ResponseWriter, r *http.Request) {
+	origin := r.Header.Get("Origin")
+	if origin != *allowedOrigin {
+		log.Printf("Suspicious request: %+v", r)
+		log.Printf("Forbidden origin: %s. Disconnecting.", origin)
+		w.WriteHeader(http.StatusForbidden)
+		return
+	}
+	client, err := NewClient(r, db)
+	if err != nil {
+		log.Printf("Failed to create client instance: %s (%s)", err, r.RemoteAddr)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 	c, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Print("upgrade error:", err)
 		return
 	}
-	client, err := NewClient(r, c, db)
-	if err != nil {
-		log.Printf("Failed to create client instance: %s (%s)", err, r.RemoteAddr)
-		err = c.Close()
-		if err != nil {
-			log.Printf("Error closing ws connection: %s (%s)", err, r.RemoteAddr)
-		}
-		return
-	}
+	client.Conn = c
 	client.Logf("connected")
 	defer client.Close()
 	err = clientList.Push(client)

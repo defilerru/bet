@@ -19,6 +19,8 @@ input, button { border: 1px solid; }
 #betPredictionList span.predCountDown {float: left; font-size: 18pt; }
 #betPredictionList span.predictionId {color: red;}
 
-#betPredictionList table td:nth-child(1) {text-align: right; width: 40%; }
-#betPredictionList table td:nth-child(2) {text-align: center; white-space: nowrap; }
-#betPredictionList table td:nth-child(3) {text-align: left; width: 40%; }
+#betPredictionList table {border: 1px solid; width: 100%; }
+#betPredictionList table td:nth-child(1) {text-align: right; width: 45%; }
+#betPredictionList table td:nth-child(2) {text-align: center; white-space: nowrap; border-left: 1px solid; border-right: 1px solid; }
+#betPredictionList table td:nth-child(3) {text-align: left; width: 45%; }
+
