@@ -9,6 +9,7 @@
     let inputOpt2 = document.getElementById("pred_opt2");
     let inputDelay = document.getElementById("pred_delay");
     let predictionsListDiv = document.getElementById("betPredictionList");
+    let startPredictionElement = document.getElementById("betStartPrediction");
     let tickInterval = null;
     let gasAmountP = document.createElement("p");
     let gasAmountTextNode = document.createTextNode("0");
@@ -118,6 +119,11 @@
                 let de = predictionsListDiv.appendChild(createPredictionElement(msg));
                 console.log(de);
             }
+            if (msg.subject === "USER_INFO") {
+                if (msg.flags.includes("CAN_CREATE_PREDICTIONS")) {
+                    startPredictionElement.style.display = "block";
+                }
+            }
             console.log(msg);
             if (tickInterval === null) {
                 //tickInterval = setInterval(tickHandler, 1000);
@@ -140,7 +146,7 @@
             return;
         }
         let delay = parseInt(inputDelay.value);
-        if (delay > 300 || delay < 30) {
+        if (delay > 900 || delay < 30) {
             return;
         }
         ws.send(JSON.stringify({

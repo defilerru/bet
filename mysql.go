@@ -19,7 +19,7 @@ const (
 	stmtSelectPrediction = "SELECT created_at, started_at FROM predictions WHERE id = ?"
 	stmtCreateBet        = "INSERT INTO bets(user_id, prediction_id, amount, on_first_option) VALUES(?,?,?,?)"
 	stmtTakePayment      = "UPDATE bets_users SET balance=balance-? WHERE id=? AND balance>=?"
-	stmtGetUserInfo      = "SELECT username, balance FROM bets_users WHERE id=?"
+	stmtGetUserInfo      = "SELECT username, balance, moderator FROM bets_users WHERE id=?"
 )
 
 func NewMySQLDB(dataSourceName string) (*MySQLDB, error) {
@@ -49,8 +49,8 @@ func NewMySQLDB(dataSourceName string) (*MySQLDB, error) {
 	return mysqlDB, err
 }
 
-func (m *MySQLDB) GetUserInfo(uid UID, gas *int64, username *string) error {
-	err := m.stmtGetUserInfo.QueryRow(uid).Scan(username, gas)
+func (m *MySQLDB) GetUserInfo(uid UID, gas *int64, username *string, moderator *bool) error {
+	err := m.stmtGetUserInfo.QueryRow(uid).Scan(username, gas, moderator)
 	return err
 }
 

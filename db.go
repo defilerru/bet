@@ -5,5 +5,5 @@ type DB interface {
 	CreateBet(prediction *Prediction, bet *Bet) error
 	DeleteBet(prediction *Prediction, uid UID) error
 	ClosePrediction(prediction *Prediction, opt1Won bool) error
-	GetUserInfo(UID, *int64, *string) error
+	GetUserInfo(UID, *int64, *string, *bool) error
 }

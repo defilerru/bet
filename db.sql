@@ -7,7 +7,8 @@ DROP TABLE IF EXISTS bets_users;
 CREATE TABLE bets_users(
     id serial,
     username char(32),
-    balance bigint unsigned default null
+    balance bigint unsigned default null,
+    moderator boolean
 ) ENGINE = InnoDB;
 
 CREATE TABLE predictions(
@@ -37,7 +38,7 @@ CREATE TABLE bets(
     CONSTRAINT pred_id_fk FOREIGN KEY(prediction_id) REFERENCES predictions(id)
 ) engine = InnoDB;
 
-INSERT INTO bets_users (id, balance, username) VALUES (41, 10000, "user41");
-INSERT INTO bets_users (id, balance, username) VALUES (42, 10000, "user42");
-INSERT INTO bets_users (id, balance, username) VALUES (43, 10000, "user43");
-INSERT INTO bets_users (id, balance, username) VALUES (44, 10000, "user44");
+INSERT INTO bets_users (id, balance, username, moderator) VALUES (41, 10000, "user41", false);
+INSERT INTO bets_users (id, balance, username, moderator) VALUES (42, 10000, "user42", true);
+INSERT INTO bets_users (id, balance, username, moderator) VALUES (43, 10000, "user43", false);
+INSERT INTO bets_users (id, balance, username, moderator) VALUES (44, 10000, "user44", false);

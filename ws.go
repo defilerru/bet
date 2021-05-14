@@ -17,10 +17,12 @@ const (
 	subjBet = "BET"
 
 	subjPredictionStarted = "PREDICTION_STARTED"
-	subjBetAccepted = "BET_ACCEPTED"
+	subjBetAccepted       = "BET_ACCEPTED"
 	subjPredictionChanged = "PREDICTION_CHANGED"
-	subjGasInfo = "GAS_INFO"
+	subjUserInfo          = "USER_INFO"
 )
+
+const canCreatePredictions = "CAN_CREATE_PREDICTIONS"
 
 var upgrader = websocket.Upgrader{}
 
@@ -33,6 +35,7 @@ type Client struct {
 	UserID     UID
 	Balance    int64
 	Conn       *websocket.Conn
+	Moderator  bool
 
 	db    DB
 	index int
@@ -63,7 +66,7 @@ func NewClient(r *http.Request, db DB) (*Client, error) {
 		uid = -1
 	}
 	client.UserID = UID(uid)
-	err = db.GetUserInfo(UID(uid), &client.Balance, &client.Username)
+	err = db.GetUserInfo(UID(uid), &client.Balance, &client.Username, &client.Moderator)
 	return client, err
 }
 
@@ -110,7 +113,9 @@ func (c *Client) HandleBet(message *Message) error {
 }
 
 func (c *Client) HandleStartPrediction(message *Message) error {
-	//TODO: check permissions
+	if !c.Moderator {
+		return fmt.Errorf("attempted to start prediction: %+v", message)
+	}
 	//TODO: validate input (opt1 != opt2, duplicate name, etc)
 	startDelaySeconds, err := strconv.ParseInt(message.Args["delay"], 10, 16)
 	if err != nil {
@@ -156,11 +161,15 @@ func (c *Client) HandleMessage(message *Message) error {
 	return fmt.Errorf("unknown msg subject: %s", message.Subject)
 }
 
-func (c *Client) SendGasInfo() error {
+func (c *Client) SendUserInfo() error {
+	var flags []string
+	if c.Moderator {
+		flags = append(flags, canCreatePredictions)
+	}
 	return c.Conn.WriteJSON(Message{
-		Subject: subjGasInfo,
+		Subject: subjUserInfo,
 		Args:    map[string]string{"gas": fmt.Sprintf("%d", c.Balance)},
-		Flags:   nil,
+		Flags:   flags,
 	})
 }
 
@@ -248,7 +257,7 @@ func echo(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		return
 	}
-	err = client.SendGasInfo()
+	err = client.SendUserInfo()
 	if err != nil {
 		return
 	}

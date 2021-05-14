@@ -13,14 +13,16 @@ input, button { border: 1px solid; }
 #stream { height: 100%; border: 1px dotted; }
 
 .betPrediction input { width: 6em; }
-.betStartPrediction { background-color: grey;}
-#betPredictionList div { background-color: antiquewhite; margin: 1px; padding: 1px; }
-#betPredictionList p.predName {text-align: center;}
-#betPredictionList span.predCountDown {float: left; font-size: 18pt; }
-#betPredictionList span.predictionId {color: red;}
 
-#betPredictionList table {border: 1px solid; width: 100%; }
-#betPredictionList table td:nth-child(1) {text-align: right; width: 45%; }
-#betPredictionList table td:nth-child(2) {text-align: center; white-space: nowrap; border-left: 1px solid; border-right: 1px solid; }
-#betPredictionList table td:nth-child(3) {text-align: left; width: 45%; }
+#betStartPrediction { background-color: grey; display: none; }
+
+#betPredictionList div { background-color: antiquewhite; margin: 1px; padding: 1px; }
+#betPredictionList p.predName { text-align: center; }
+#betPredictionList span.predCountDown { float: left; font-size: 18pt; }
+#betPredictionList span.predictionId { color: red; }
+
+#betPredictionList table { border: 1px solid; width: 100%; }
+#betPredictionList table td:nth-child(1) { text-align: right; width: 45%; }
+#betPredictionList table td:nth-child(2) { text-align: center; white-space: nowrap; border-left: 1px solid; border-right: 1px solid; }
+#betPredictionList table td:nth-child(3) { text-align: left; width: 45%; }
 
