@@ -37,6 +37,8 @@ type Prediction struct {
 	CreatedBy uint64
 	CreatedAt time.Time
 	StartedAt time.Time
+	FinishedAt time.Time
+	Opt1Won bool
 
 	StartDelaySeconds uint16
 

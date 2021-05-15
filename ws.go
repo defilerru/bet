@@ -88,7 +88,7 @@ func (c *Client) HandleBet(message *Message) error {
 		return fmt.Errorf("can't parse amount: %s", err)
 	}
 	bet := Bet{
-		UserId:        UID(c.UserID),
+		UserId:        c.UserID,
 		Amount:        uint64(amount),
 		OnFirstOption: false,
 	}
@@ -222,20 +222,25 @@ func (cl *ClientList) Broadcast(msg *Message) {
 }
 
 func main() {
+	var err error
 	flag.Parse()
 	log.SetFlags(0)
-	http.HandleFunc("/echo/", echo)
 
-	activePredictions = map[uint64]*Prediction{}
-
-	fs := http.FileServer(http.Dir("html"))
-	var err error
 	db, err = NewMySQLDB("defiler@/defiler?parseTime=true&loc=Local")
 	if err != nil {
 		log.Fatalf("unable to connect db: %s", err)
 	}
+	activePredictions, err = db.LoadPredictions()
+	if err != nil {
+		log.Fatalf("unable to load predicionts: %s", err)
+	}
+	log.Printf("%d active predictions loaded", len(activePredictions))
+
+	http.HandleFunc("/echo/", echo)
+		fs := http.FileServer(http.Dir("html"))
 	http.Handle("/", fs)
 	log.Printf("Starting server at %s", *addr)
+
 	log.Fatal(http.ListenAndServe(*addr, nil))
 }
 

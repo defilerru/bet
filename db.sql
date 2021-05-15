@@ -21,10 +21,11 @@ CREATE TABLE predictions(
     name char(32),
     option_1 char(16),
     option_2 char(16),
-    winner ENUM('option_1', 'option_2'),
+    opt1_won bool NOT NULL DEFAULT false,
     start_delay_seconds smallint unsigned not null,
     CONSTRAINT created_by_fk FOREIGN KEY(created_by) REFERENCES bets_users(id),
-    PRIMARY KEY(id)
+    PRIMARY KEY(id),
+    KEY(created_at)
 ) engine = InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE bets(
