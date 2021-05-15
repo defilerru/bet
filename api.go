@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"time"
 )
@@ -22,11 +21,6 @@ func (m *Message) FillArgs(p *Prediction) {
 		"createdAt": p.CreatedAt.Format(time.RFC3339),
 		"startedAt": p.StartedAt.Format(time.RFC3339),
 	}
-}
-
-func Unserialize(data []byte) (*Message, error) {
-	msg := &Message{}
-	return msg, json.Unmarshal(data, msg)
 }
 
 func (m *Message) String() string {

@@ -8,8 +8,8 @@
     let inputOpt1 = document.getElementById("pred_opt1");
     let inputOpt2 = document.getElementById("pred_opt2");
     let inputDelay = document.getElementById("pred_delay");
-    let predictionsListDiv = document.getElementById("betPredictionList");
-    let startPredictionElement = document.getElementById("betStartPrediction");
+    let elPredictionsList = document.getElementById("betPredictionList");
+    let elCreatePrediction = document.getElementById("betStartPrediction");
     let tickInterval = null;
     let gasAmountP = document.createElement("p");
     let gasAmountTextNode = document.createTextNode("0");
@@ -118,18 +118,22 @@
         ws.onclose = function (e) {
             console.log(e);
             setTimeout(open, 5000);
+            elCreatePrediction.style.display = "none";
+            while (elPredictionsList.firstChild) {
+                elPredictionsList.removeChild(elPredictionsList.firstChild);
+            }
         }
         ws.onmessage = function (e) {
             let msg = JSON.parse(e.data);
             console.log(msg);
             //TODO: handle parse error
             if (msg.subject === "PREDICTION_STARTED") {
-                let de = predictionsListDiv.appendChild(createPredictionElement(msg));
+                let de = elPredictionsList.appendChild(createPredictionElement(msg));
                 console.log(de);
             }
             if (msg.subject === "USER_INFO") {
                 if (msg.flags.includes("CAN_CREATE_PREDICTIONS")) {
-                    startPredictionElement.style.display = "block";
+                    elCreatePrediction.style.display = "block";
                 }
             }
             if (tickInterval === null) {
