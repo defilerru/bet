@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	_ "github.com/go-sql-driver/mysql"
 	"log"
+	"time"
 )
 
 type MySQLDB struct {
@@ -15,7 +16,7 @@ type MySQLDB struct {
 }
 
 const (
-	stmtCreatePrediction = "INSERT INTO predictions(name, option_1, option_2, start_delay_seconds, created_by) VALUES(?,?,?,?,?)"
+	stmtCreatePrediction = "INSERT INTO predictions(name, option_1, option_2, start_delay_seconds, created_by, created_at) VALUES(?,?,?,?,?,?)"
 	stmtSelectPrediction = "SELECT created_at, started_at FROM predictions WHERE id = ?"
 	stmtCreateBet        = "INSERT INTO bets(user_id, prediction_id, amount, on_first_option) VALUES(?,?,?,?)"
 	stmtTakePayment      = "UPDATE bets_users SET balance=balance-? WHERE id=? AND balance>=?"
@@ -55,7 +56,8 @@ func (m *MySQLDB) GetUserInfo(uid UID, gas *int64, username *string, moderator *
 }
 
 func (m *MySQLDB) CreatePrediction(prediction *Prediction) error {
-	res, err := m.stmtCreatePrediction.Exec(prediction.Name, prediction.Opt1, prediction.Opt2, prediction.StartDelaySeconds, prediction.CreatedBy)
+	prediction.CreatedAt = time.Now()
+	res, err := m.stmtCreatePrediction.Exec(prediction.Name, prediction.Opt1, prediction.Opt2, prediction.StartDelaySeconds, prediction.CreatedBy, prediction.CreatedAt)
 	if err != nil {
 		return err
 	}

@@ -134,15 +134,9 @@ func (c *Client) HandleStartPrediction(message *Message) error {
 	c.Logf("prediction started '%s' id:%d", p.Name, p.Id)
 	msg := &Message{
 		Subject: subjPredictionStarted,
-		Args:    map[string]string{
-			"name": message.Args["name"],
-			"id": fmt.Sprintf("%d", p.Id),
-			"opt1": p.Opt1,
-			"opt2": p.Opt2,
-			"delay": fmt.Sprintf("%d", p.StartDelaySeconds),
-		},
 		Flags:   nil,
 	}
+	msg.FillArgs(p)
 	go clientList.Broadcast(msg)
 	return nil
 }
@@ -159,6 +153,21 @@ func (c *Client) HandleMessage(message *Message) error {
 		return c.HandleBet(message)
 	}
 	return fmt.Errorf("unknown msg subject: %s", message.Subject)
+}
+
+func (c *Client) SendActivePredictions() error {
+	var err error
+	var msg Message
+	msg.Subject = subjPredictionStarted
+	for i, _ := range activePredictions {
+		msg.FillArgs(activePredictions[i])
+		err = c.Conn.WriteJSON(msg)
+		if err != nil {
+			c.Logf("error sending prediction: %s", err)
+			return err
+		}
+	}
+	return nil
 }
 
 func (c *Client) SendUserInfo() error {
@@ -258,6 +267,10 @@ func echo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	err = client.SendUserInfo()
+	if err != nil {
+		return
+	}
+	err = client.SendActivePredictions()
 	if err != nil {
 		return
 	}

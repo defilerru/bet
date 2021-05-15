@@ -90,12 +90,19 @@
         table.appendChild(tr);
     }
 
+    const getCountDown = (m) => {
+        let delay = parseInt(m.args.delay, 10);
+        let end = (Date.parse(m.args.createdAt) / 1000) + delay;
+        let now = Date.now() / 1000;
+        return Math.round(end - now);
+    }
+
     const createPredictionElement = (message) => {
         let table = document.createElement("table");
         table.setAttribute("cellspacing", "0");
         table.setAttribute("cellpadding", "0");
         let th = createElTextClass(table, "th", message.args.name, "");
-        createElTextClass(th, "span", message.args.delay, "predCountDown");
+        createElTextClass(th, "span", getCountDown(message), "predCountDown");
         th.setAttribute("colspan", 3);
         createBetInfoRow(table, "G");
         createBetInfoRow(table, "#");
