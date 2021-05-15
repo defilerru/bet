@@ -74,19 +74,19 @@
         return e;
     }
 
-    const createBetRow = (table, name, el1, el2) => {
+    const createBetRow = (table, el1, el2, el3) => {
         let tr = document.createElement("tr");
-        let td1 = createAppendEl(tr, "td", el1);
-        let tdc = createAppendEl(tr, "td", createElTextClass(tr, "span", name, ""));
-        let td2 = createAppendEl(tr, "td", el2);
+        createAppendEl(tr, "td", el1);
+        createAppendEl(tr, "td", el2);
+        createAppendEl(tr, "td", el3);
         table.appendChild(tr);
     }
 
     const createBetInfoRow = (table, name) => {
         let tr = document.createElement("tr");
-        let td1 = createAppendEl(tr, "td", createElTextClass(tr, "span", "-", name + "_1"));
-        let tdc = createAppendEl(tr, "td", createElTextClass(tr, "span", name, ""));
-        let td2 = createAppendEl(tr, "td", createElTextClass(tr, "span", "-", name + "_2"));
+        createAppendEl(tr, "td", createElTextClass(tr, "span", "-", name + "_1"));
+        createAppendEl(tr, "td", createElTextClass(tr, "span", name, ""));
+        createAppendEl(tr, "td", createElTextClass(tr, "span", "-", name + "_2"));
         table.appendChild(tr);
     }
 
@@ -108,6 +108,23 @@
         createBetInfoRow(table, "#");
         createBetInfoRow(table, "%");
         createBetInfoRow(table, "/");
+
+        let c = document.createElement("span");
+
+        let i1 = document.createElement("input");
+        i1.value = "10";
+        i1.setAttribute("type", "number");
+        let i2 = document.createElement("input");
+        i2.value = "10";
+        i2.setAttribute("type", "number");
+        createBetRow(table, i1, c, i2);
+
+        let b1 = document.createElement("button");
+        b1.appendChild(document.createTextNode(message.args.opt1));
+        let b2 = document.createElement("button");
+        b2.appendChild(document.createTextNode(message.args.opt2));
+        createBetRow(table, b1, c, b2);
+
         return table;
     }
 
