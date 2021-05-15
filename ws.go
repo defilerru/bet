@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"errors"
-	"flag"
 	"fmt"
 	"github.com/gorilla/websocket"
 	"log"
@@ -25,9 +24,6 @@ const (
 const canCreatePredictions = "CAN_CREATE_PREDICTIONS"
 
 var upgrader = websocket.Upgrader{}
-
-var addr = flag.String("addr", "127.0.0.1:8080", "http service address")
-var allowedOrigin = flag.String("origin", "http://localhost:8080", "allowed origin")
 
 type Client struct {
 	RemoteAddr string
@@ -221,33 +217,9 @@ func (cl *ClientList) Broadcast(msg *Message) {
 	log.Printf("done")
 }
 
-func main() {
-	var err error
-	flag.Parse()
-	log.SetFlags(0)
-
-	db, err = NewMySQLDB("defiler@/defiler?parseTime=true&loc=Local")
-	if err != nil {
-		log.Fatalf("unable to connect db: %s", err)
-	}
-	activePredictions, err = db.LoadPredictions()
-	if err != nil {
-		log.Fatalf("unable to load predicionts: %s", err)
-	}
-	log.Printf("%d active predictions loaded", len(activePredictions))
-
-	http.HandleFunc("/echo/", echo)
-		fs := http.FileServer(http.Dir("html"))
-	http.Handle("/", fs)
-	log.Printf("Starting server at %s", *addr)
-
-	log.Fatal(http.ListenAndServe(*addr, nil))
-}
-
-
 func echo(w http.ResponseWriter, r *http.Request) {
 	origin := r.Header.Get("Origin")
-	if origin != *allowedOrigin {
+	if !allowedOrigins.Contain(origin) {
 		log.Printf("Suspicious request: %+v", r)
 		log.Printf("Forbidden origin: %s. Disconnecting.", origin)
 		w.WriteHeader(http.StatusForbidden)
