@@ -86,7 +86,9 @@ func (m *MySQLDB) LoadPredictions() (preds map[uint64]*Prediction, err error) {
 	}
 	for rows.Next() {
 		startedAt := sql.NullTime{}
-		pred := &Prediction{}
+		pred := &Prediction{
+			db: m,
+		}
 		err = rows.Scan(
 			&pred.Id,
 			&pred.CreatedBy,
@@ -101,6 +103,7 @@ func (m *MySQLDB) LoadPredictions() (preds map[uint64]*Prediction, err error) {
 			return
 		}
 		pred.StartedAt = startedAt.Time
+		pred.Bets = map[UID]Bet{}
 		//TODO: load bets
 		preds[pred.Id] = pred
 	}
@@ -117,6 +120,7 @@ func (m *MySQLDB) LoadPrediction(id uint64) (*Prediction, error) {
 }
 
 func (m *MySQLDB) ClosePrediction(prediction *Prediction, opt1Won bool) error {
+	//TODO: defer rollback
 	tx, err := m.db.BeginTx(context.TODO(), nil)
 	if err != nil {
 		return err
@@ -133,6 +137,12 @@ func (m *MySQLDB) ClosePrediction(prediction *Prediction, opt1Won bool) error {
 
 func (m *MySQLDB) CreateBet(prediction *Prediction, bet *Bet) error {
 	tx, err := m.db.BeginTx(context.TODO(), nil)
+	defer func(){
+		err := tx.Rollback()
+		if err != nil {
+			log.Printf("Unable to rollback: %s", err)
+		}
+	}()
 	if err != nil {
 		return err
 	}

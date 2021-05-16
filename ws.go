@@ -86,7 +86,7 @@ func (c *Client) HandleBet(message *Message) error {
 	bet := Bet{
 		UserId:        c.UserID,
 		Amount:        uint64(amount),
-		OnFirstOption: false,
+		OnFirstOption: message.Args["opt1Win"] == "true",
 	}
 	err = p.AddBet(bet)
 	if err != nil {

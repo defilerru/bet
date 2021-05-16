@@ -13,6 +13,7 @@
     let tickInterval = null;
     let gasAmountP = document.createElement("p");
     let gasAmountTextNode = document.createTextNode("0");
+    let buttonOdOptRe = /bet_button_([0-9]+)_([12])/;
     gasAmountP.appendChild(gasAmountTextNode);
 
     const createElTextClass = (parent, tagName, text, className) => {
@@ -42,17 +43,21 @@
         }
     }
 
-    const bet = (e) => {
-        let idEl = getChildByClass(e.target.parentElement, "predictionId");
-        let amountEl = getChildByClass(e.target.parentElement, "predAmount");
+    const betClickHandler = (e) => {
+        console.log(e);
+        let idOpt = e.target.getAttribute("id").match(buttonOdOptRe);
+        let betId = idOpt[1];
+        let opt1Win = idOpt[2] === "1";
+        let amountEl = document.getElementById(`bet_amount_${betId}_${idOpt[2]}`);
+        console.log("sending");
         ws.send(JSON.stringify({
             subject: "BET",
             args: {
-                id: idEl.textContent,
+                id: betId,
                 amount: amountEl.value,
-                opt1Win: "" + (e.target.className === "betOpt1")}
+                opt1Win: opt1Win ? "true" : "false",
+            }
         }));
-        console.log(e.target);
     }
 
     const tickHandler = () => {
@@ -112,18 +117,27 @@
         let c = document.createElement("span");
 
         let i1 = document.createElement("input");
+        i1.setAttribute("id",`bet_amount_${message.args.id}_1`);
         i1.value = "10";
         i1.setAttribute("type", "number");
+
         let i2 = document.createElement("input");
+        i2.setAttribute("id",`bet_amount_${message.args.id}_2`);
         i2.value = "10";
         i2.setAttribute("type", "number");
         createBetRow(table, i1, c, i2);
 
         let b1 = document.createElement("button");
         b1.appendChild(document.createTextNode(message.args.opt1));
+        b1.setAttribute("id", `bet_button_${message.args.id}_1`);
+
         let b2 = document.createElement("button");
         b2.appendChild(document.createTextNode(message.args.opt2));
+        b2.setAttribute("id", `bet_button_${message.args.id}_2`);
         createBetRow(table, b1, c, b2);
+
+        b1.onclick = betClickHandler;
+        b2.onclick = betClickHandler;
 
         return table;
     }
