@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	_ "github.com/go-sql-driver/mysql"
 	"log"
 	"time"
@@ -14,15 +15,17 @@ type MySQLDB struct {
 	stmtSelectPrediction  *sql.Stmt
 	stmtGetUserInfo       *sql.Stmt
 	stmtSelectPredictions *sql.Stmt
+	stmtSelectBets        *sql.Stmt
 }
 
 const (
-	stmtCreatePrediction  = "INSERT INTO predictions(name, option_1, option_2, start_delay_seconds, created_by, created_at) VALUES(?,?,?,?,?,?)"
+	stmtSelectBets        = "SELECT user_id, amount, on_first_option FROM bets WHERE prediction_id = ?"
 	stmtSelectPrediction  = "SELECT created_at, started_at FROM predictions WHERE id = ?"
-	stmtCreateBet         = "INSERT INTO bets(user_id, prediction_id, amount, on_first_option) VALUES(?,?,?,?)"
-	stmtTakePayment       = "UPDATE bets_users SET balance=balance-? WHERE id=? AND balance>=?"
 	stmtGetUserInfo       = "SELECT username, balance, moderator FROM bets_users WHERE id=?"
 	stmtSelectPredictions = "SELECT id, created_by, created_at, started_at, name, option_1, option_2, opt1_won, start_delay_seconds FROM predictions WHERE finished_at IS NULL ORDER BY created_at"
+	stmtCreatePrediction  = "INSERT INTO predictions(name, option_1, option_2, start_delay_seconds, created_by, created_at) VALUES(?,?,?,?,?,?)"
+	stmtCreateBet         = "INSERT INTO bets(user_id, prediction_id, amount, on_first_option) VALUES(?,?,?,?)"
+	stmtTakePayment       = "UPDATE bets_users SET balance=balance-? WHERE id=? AND balance>=?"
 )
 
 func NewMySQLDB(dataSourceName string) (*MySQLDB, error) {
@@ -54,6 +57,11 @@ func NewMySQLDB(dataSourceName string) (*MySQLDB, error) {
 		return mysqlDB, err
 	}
 
+	mysqlDB.stmtSelectBets, err = db.Prepare(stmtSelectBets)
+	if err != nil {
+		return mysqlDB, err
+	}
+
 	return mysqlDB, err
 }
 
@@ -79,6 +87,7 @@ func (m *MySQLDB) CreatePrediction(prediction *Prediction) error {
 }
 
 func (m *MySQLDB) LoadPredictions() (preds map[uint64]*Prediction, err error) {
+	var betsRows *sql.Rows
 	preds = map[uint64]*Prediction{}
 	rows, err := m.stmtSelectPredictions.Query()
 	if err != nil {
@@ -104,7 +113,20 @@ func (m *MySQLDB) LoadPredictions() (preds map[uint64]*Prediction, err error) {
 		}
 		pred.StartedAt = startedAt.Time
 		pred.Bets = map[UID]Bet{}
-		//TODO: load bets
+		betsRows, err = m.stmtSelectBets.Query(pred.Id)
+		if err != nil {
+			err = fmt.Errorf("unable to query bets: %s", err)
+			return
+		}
+		for betsRows.Next() {
+			bet := Bet{}
+			err = betsRows.Scan(&bet.UserId, &bet.Amount, &bet.OnFirstOption)
+			if err != nil {
+				err = fmt.Errorf("unable to scan bets: %s", err)
+				return
+			}
+			pred.Bets[bet.UserId] = bet
+		}
 		preds[pred.Id] = pred
 	}
 	return

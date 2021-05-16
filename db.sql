@@ -35,6 +35,7 @@ CREATE TABLE bets(
     on_first_option boolean not null,
     created_at timestamp not null default current_timestamp,
     PRIMARY KEY(user_id, prediction_id),
+    KEY(prediction_id),
     CONSTRAINT user_id_ft FOREIGN KEY(user_id) REFERENCES bets_users(id),
     CONSTRAINT pred_id_fk FOREIGN KEY(prediction_id) REFERENCES predictions(id)
 ) engine = InnoDB;
