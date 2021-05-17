@@ -34,13 +34,22 @@
         return el
     }
 
-    const getChildByClass = (element, className) => {
-        for (let i = 0; i < element.children.length; i++) {
-            let el = element.children[i];
-            if (el.getAttribute("class") === className) {
-                return el;
-            }
-        }
+    const setTextPredInfo = (id, val) => {
+        document.getElementById(id).firstChild.textContent = val;
+    }
+
+    const handlePredictionChanged = (msg) => {
+        setTextPredInfo("betInfo1_G_" + msg.args.id, msg.args.amountOpt1);
+        setTextPredInfo("betInfo2_G_" + msg.args.id, msg.args.amountOpt2);
+
+        setTextPredInfo("betInfo1_N_" + msg.args.id, msg.args.ppl1);
+        setTextPredInfo("betInfo2_N_" + msg.args.id, msg.args.ppl2);
+
+        setTextPredInfo("betInfo1_C_" + msg.args.id, msg.args.coef1);
+        setTextPredInfo("betInfo2_C_" + msg.args.id, msg.args.coef2);
+
+        setTextPredInfo("betInfo1_P_" + msg.args.id, msg.args.per1);
+        setTextPredInfo("betInfo2_P_" + msg.args.id, msg.args.per2);
     }
 
     const betClickHandler = (e) => {
@@ -87,11 +96,15 @@
         table.appendChild(tr);
     }
 
-    const createBetInfoRow = (table, name) => {
+    const createBetInfoRow = (table, name, id) => {
         let tr = document.createElement("tr");
-        createAppendEl(tr, "td", createElTextClass(tr, "span", "-", name + "_1"));
+        let s1 = createElTextClass(tr, "span", "-", name + "_1");
+        let s2 = createElTextClass(tr, "span", "-", name + "_2");
+        s1.setAttribute("id",`betInfo1_${name}_${id}`);
+        s2.setAttribute("id",`betInfo2_${name}_${id}`);
+        createAppendEl(tr, "td", s1);
         createAppendEl(tr, "td", createElTextClass(tr, "span", name, ""));
-        createAppendEl(tr, "td", createElTextClass(tr, "span", "-", name + "_2"));
+        createAppendEl(tr, "td", s2);
         table.appendChild(tr);
     }
 
@@ -109,10 +122,10 @@
         let th = createElTextClass(table, "th", message.args.name, "");
         createElTextClass(th, "span", getCountDown(message), "predCountDown");
         th.setAttribute("colspan", 3);
-        createBetInfoRow(table, "G");
-        createBetInfoRow(table, "#");
-        createBetInfoRow(table, "%");
-        createBetInfoRow(table, "/");
+        createBetInfoRow(table, "G", message.args.id);
+        createBetInfoRow(table, "N", message.args.id);
+        createBetInfoRow(table, "P", message.args.id);
+        createBetInfoRow(table, "C", message.args.id);
 
         let c = document.createElement("span");
 
@@ -160,16 +173,17 @@
             //TODO: handle parse error
             if (msg.subject === "PREDICTION_STARTED") {
                 let de = elPredictionsList.appendChild(createPredictionElement(msg));
-                console.log(de);
+                if (tickInterval === null) {
+                    tickInterval = setInterval(tickHandler, 1000);
+                }
             }
             if (msg.subject === "USER_INFO") {
                 if (msg.flags.includes("CAN_CREATE_PREDICTIONS")) {
                     elCreatePrediction.style.display = "block";
                 }
             }
-            if (tickInterval === null) {
-                tickInterval = setInterval(tickHandler, 1000);
-                console.log(tickInterval);
+            if (msg.subject === "PREDICTION_CHANGED") {
+                handlePredictionChanged(msg);
             }
         }
         ws.onopen = function (e) {
