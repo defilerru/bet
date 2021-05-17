@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"time"
 )
 
@@ -81,6 +82,42 @@ func (p *Prediction) AddBet(bet Bet) error {
 		p.Balance2 += bet.Amount
 	}
 	return nil
+}
+
+func (p *Prediction) CalculateInfo() map[string]string {
+	var amountOpt1 uint64
+	var amountOpt2 uint64
+	var ppl1 uint32
+	var ppl2 uint32
+	var coef1 float32
+	var coef2 float32
+	var per1 float32
+	var per2 float32
+	for _, bet := range p.Bets {
+		if bet.OnFirstOption {
+			ppl1 += 1
+			amountOpt1 += bet.Amount
+		} else {
+			ppl2 += 1
+			amountOpt2 += bet.Amount
+		}
+	}
+	total := float32(amountOpt1 + amountOpt2)
+	coef1 = total / float32(amountOpt1)
+	coef2 = total / float32(amountOpt2)
+	per1 = float32(amountOpt1) / total
+	per2 = float32(amountOpt2) / total
+	return map[string]string{
+		"amountOpt1": fmt.Sprintf("%d", amountOpt1),
+		"amountOpt2": fmt.Sprintf("%d", amountOpt2),
+		"ppl1": fmt.Sprintf("%d", ppl1),
+		"ppl2": fmt.Sprintf("%d", ppl2),
+		"coef1": fmt.Sprintf("1:%.2f", coef1),
+		"coef2": fmt.Sprintf("1:%.2f", coef2),
+		"per1": fmt.Sprintf("%.1f%%", per1 * 100),
+		"per2": fmt.Sprintf("%.1f%%", per2 * 100),
+		"id": fmt.Sprintf("%d", p.Id),
+	}
 }
 
 func (p *Prediction) DeleteBet(uid UID) error {

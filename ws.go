@@ -154,12 +154,21 @@ func (c *Client) HandleMessage(message *Message) error {
 func (c *Client) SendActivePredictions() error {
 	var err error
 	var msg Message
+	var msgUpdate Message
 	msg.Subject = subjPredictionStarted
+	msgUpdate.Subject = subjPredictionChanged
 	for i, _ := range activePredictions {
-		msg.FillArgs(activePredictions[i])
+		p := activePredictions[i]
+		msg.FillArgs(p)
 		err = c.Conn.WriteJSON(msg)
 		if err != nil {
 			c.Logf("error sending prediction: %s", err)
+			return err
+		}
+		msgUpdate.Args = p.CalculateInfo()
+		err = c.Conn.WriteJSON(msgUpdate)
+		if err != nil {
+			c.Logf("error sending prediction update: %s", err)
 			return err
 		}
 	}
