@@ -7,4 +7,5 @@ type DB interface {
 	DeleteBet(prediction *Prediction, uid UID) error
 	ClosePrediction(prediction *Prediction, opt1Won bool) error
 	GetUserInfo(UID, *int64, *string, *bool) error
+	StopAccepting(prediction *Prediction) error
 }

@@ -69,15 +69,22 @@
         }));
     }
 
-    const tickHandler = () => {
+    const handleCountdownTick = () => {
         let els = document.getElementsByClassName("predCountDown");
+        if (els.length === 0) {
+            clearInterval(tickInterval);
+            tickInterval = null;
+            return;
+        }
         for (let i = 0; i < els.length; i++) {
             let count = parseInt(els[i].textContent) - 1;
-            if (count === 0) {
-                console.log("done");
-                //TODO: deactivate
+            if (count <= 0) {
+                let strId = els[i].id.substring(14); // strlen "predCountDown_"
+                document.getElementById(`bet_button_${strId}_1`).parentElement.parentElement.remove();
+                //TODO: remove input also
+            } else {
+                els[i].textContent = "" + count;
             }
-            els[i].textContent = "" + count;
         }
     }
 
@@ -112,15 +119,21 @@
         let delay = parseInt(m.args.delay, 10);
         let end = (Date.parse(m.args.createdAt) / 1000) + delay;
         let now = Date.now() / 1000;
-        return Math.round(end - now);
+        let cd = Math.round(end - now);
+        if (cd < 0) {
+            return 0;
+        }
+        return cd;
     }
 
     const createPredictionElement = (message) => {
+        let countDown = getCountDown(message);
         let table = document.createElement("table");
         table.setAttribute("cellspacing", "0");
         table.setAttribute("cellpadding", "0");
         let th = createElTextClass(table, "th", message.args.name, "");
-        createElTextClass(th, "span", getCountDown(message), "predCountDown");
+        let cd = createElTextClass(th, "span", countDown, "predCountDown");
+        cd.setAttribute("id", "predCountDown_" + message.args.id);
         th.setAttribute("colspan", 3);
         createBetInfoRow(table, "G", message.args.id);
         createBetInfoRow(table, "N", message.args.id);
@@ -128,6 +141,10 @@
         createBetInfoRow(table, "C", message.args.id);
 
         let c = document.createElement("span");
+
+        if (countDown <= 0) {
+            return table;
+        }
 
         let i1 = document.createElement("input");
         i1.setAttribute("id",`bet_amount_${message.args.id}_1`);
@@ -174,7 +191,7 @@
             if (msg.subject === "PREDICTION_STARTED") {
                 let de = elPredictionsList.appendChild(createPredictionElement(msg));
                 if (tickInterval === null) {
-                    tickInterval = setInterval(tickHandler, 1000);
+                    tickInterval = setInterval(handleCountdownTick, 1000);
                 }
             }
             if (msg.subject === "USER_INFO") {

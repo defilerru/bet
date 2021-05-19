@@ -95,9 +95,7 @@ func (c *Client) HandleBet(message *Message) error {
 	c.Logf("bet accepted: %s", bet)
 	msg := &Message{
 		Subject: subjPredictionChanged,
-		Args:    map[string]string{
-			"Id": fmt.Sprintf("%d", p.Id),
-		},
+		Args:    p.CalculateInfo(),
 		Flags:   nil,
 	}
 	clientList.Broadcast(msg)
@@ -133,6 +131,7 @@ func (c *Client) HandleStartPrediction(message *Message) error {
 		Flags:   nil,
 	}
 	msg.FillArgs(p)
+	go p.WaitAndStopAccepting()
 	go clientList.Broadcast(msg)
 	return nil
 }

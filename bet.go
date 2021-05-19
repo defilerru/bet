@@ -1,7 +1,9 @@
 package main
 
 import (
+	"errors"
 	"fmt"
+	"log"
 	"time"
 )
 
@@ -67,6 +69,9 @@ func CreatePrediction(name string, opt1 string, opt2 string, startDelaySeconds u
 }
 
 func (p *Prediction) AddBet(bet Bet) error {
+	if !p.StartedAt.IsZero() {
+		return errors.New("too late")
+	}
 	_, ok := p.Bets[bet.UserId]
 	if ok {
 		return &Duplicate{}
@@ -117,6 +122,24 @@ func (p *Prediction) CalculateInfo() map[string]string {
 		"per1": fmt.Sprintf("%.1f%%", per1 * 100),
 		"per2": fmt.Sprintf("%.1f%%", per2 * 100),
 		"id": fmt.Sprintf("%d", p.Id),
+	}
+}
+
+func (p *Prediction) WaitAndStopAccepting() {
+	if !p.StartedAt.IsZero() {
+		return
+	}
+	secondsLeft := (p.CreatedAt.Unix() + int64(p.StartDelaySeconds)) - time.Now().Unix()
+	if secondsLeft < 0 {
+		secondsLeft = 0
+	}
+	log.Printf("predicion %d waiting %d seconds", p.Id, secondsLeft)
+	time.Sleep(time.Second * time.Duration(secondsLeft))
+	log.Printf("stop accepting prediction: %d", p.Id)
+	err := p.db.StopAccepting(p)
+	p.StartedAt = time.Now()
+	if err != nil {
+		log.Printf("stop accepting error: %s", err)
 	}
 }
 

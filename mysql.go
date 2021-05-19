@@ -16,6 +16,7 @@ type MySQLDB struct {
 	stmtGetUserInfo       *sql.Stmt
 	stmtSelectPredictions *sql.Stmt
 	stmtSelectBets        *sql.Stmt
+	stmtStopAccepting     *sql.Stmt
 }
 
 const (
@@ -26,6 +27,7 @@ const (
 	stmtCreatePrediction  = "INSERT INTO predictions(name, option_1, option_2, start_delay_seconds, created_by, created_at) VALUES(?,?,?,?,?,?)"
 	stmtCreateBet         = "INSERT INTO bets(user_id, prediction_id, amount, on_first_option) VALUES(?,?,?,?)"
 	stmtTakePayment       = "UPDATE bets_users SET balance=balance-? WHERE id=? AND balance>=?"
+	stmtStopAccepting     = "UPDATE predictions SET started_at=NOW() WHERE id=?"
 )
 
 func NewMySQLDB(dataSourceName string) (*MySQLDB, error) {
@@ -58,6 +60,11 @@ func NewMySQLDB(dataSourceName string) (*MySQLDB, error) {
 	}
 
 	mysqlDB.stmtSelectBets, err = db.Prepare(stmtSelectBets)
+	if err != nil {
+		return mysqlDB, err
+	}
+
+	mysqlDB.stmtStopAccepting, err = db.Prepare(stmtStopAccepting)
 	if err != nil {
 		return mysqlDB, err
 	}
@@ -128,6 +135,7 @@ func (m *MySQLDB) LoadPredictions() (preds map[uint64]*Prediction, err error) {
 			pred.Bets[bet.UserId] = bet
 		}
 		preds[pred.Id] = pred
+		go pred.WaitAndStopAccepting()
 	}
 	return
 }
@@ -192,6 +200,21 @@ func (m *MySQLDB) CreateBet(prediction *Prediction, bet *Bet) error {
 		return err
 	}
 	return tx.Commit()
+}
+
+func (m *MySQLDB) StopAccepting(prediction *Prediction) error {
+	res, err := m.stmtStopAccepting.Exec(prediction.Id)
+	if err != nil {
+		return err
+	}
+	rows, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rows != 1 {
+		return fmt.Errorf("rows affected: %d", rows)
+	}
+	return nil
 }
 
 func (m *MySQLDB) DeleteBet(prediction *Prediction, uid UID) error {
