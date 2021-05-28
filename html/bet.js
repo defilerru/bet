@@ -3,6 +3,7 @@
     //document.cookie = "lol=ok";
 
     let ws;
+    let currentUserId = -1;
     let start_button = document.getElementById("pred_btn_start");
     let inputName = document.getElementById("pred_name");
     let inputOpt1 = document.getElementById("pred_opt1");
@@ -13,7 +14,8 @@
     let tickInterval = null;
     let gasAmountP = document.createElement("p");
     let gasAmountTextNode = document.createTextNode("0");
-    let buttonOdOptRe = /bet_button_([0-9]+)_([12])/;
+    let reButtonOdOpt = /bet_button_([0-9]+)_([12])/;
+    let reButtonEndPrediction = /end_opt_([12])_([0-9]+)/;
     gasAmountP.appendChild(gasAmountTextNode);
 
     const createElTextClass = (parent, tagName, text, className) => {
@@ -52,9 +54,23 @@
         setTextPredInfo("betInfo2_P_" + msg.args.id, msg.args.per2);
     }
 
-    const betClickHandler = (e) => {
+    const clickEndPredictionHandler = (e) => {
         console.log(e);
-        let idOpt = e.target.getAttribute("id").match(buttonOdOptRe);
+        let idOpt = e.target.getAttribute("id").match(reButtonEndPrediction);
+        let betId = idOpt[2];
+        let opt1Won = idOpt[1] === "1";
+        ws.send(JSON.stringify({
+            subject: "PREDICTION_FINISHED",
+            args: {
+                id: betId,
+                opt1Won: opt1Won ? "true" : "false",
+            },
+        }));
+    }
+
+    const clickBetHandler = (e) => {
+        console.log(e);
+        let idOpt = e.target.getAttribute("id").match(reButtonOdOpt);
         let betId = idOpt[1];
         let opt1Win = idOpt[2] === "1";
         let amountEl = document.getElementById(`bet_amount_${betId}_${idOpt[2]}`);
@@ -77,13 +93,14 @@
             return;
         }
         for (let i = 0; i < els.length; i++) {
-            let count = parseInt(els[i].textContent) - 1;
-            if (count <= 0) {
+            let count = parseInt(els[i].textContent);
+            if (count === 1) {
                 let strId = els[i].id.substring(14); // strlen "predCountDown_"
                 document.getElementById(`bet_button_${strId}_1`).parentElement.parentElement.remove();
-                //TODO: remove input also
-            } else {
-                els[i].textContent = "" + count;
+                document.getElementById(`bet_amount_${strId}_1`).parentElement.parentElement.remove();
+            }
+            if (count > 0) {
+                els[i].textContent = "" + (count - 1);
             }
         }
     }
@@ -126,6 +143,22 @@
         return cd;
     }
 
+    const createButton = (name, id, clickHandler) => {
+        let b = document.createElement("button");
+        b.appendChild(document.createTextNode(name));
+        b.setAttribute("id", id);
+        b.onclick = clickHandler;
+        return b;
+    }
+
+    const createEndPredictionRow = (table, o1, o2, id) => {
+        let c = document.createElement("span");
+        let b1 = createButton(o1, "end_opt_1_" + id, clickEndPredictionHandler)
+        let b2 = createButton(o2, "end_opt_2_" + id, clickEndPredictionHandler);
+        createBetRow(table, b1, c, b2);
+        return table;
+    }
+
     const createPredictionElement = (message) => {
         let countDown = getCountDown(message);
         let table = document.createElement("table");
@@ -143,6 +176,9 @@
         let c = document.createElement("span");
 
         if (countDown <= 0) {
+            if (message.args.createdBy === currentUserId) {
+                createEndPredictionRow(table, message.args.opt1, message.args.opt2, message.args.id);
+            }
             return table;
         }
 
@@ -157,17 +193,11 @@
         i2.setAttribute("type", "number");
         createBetRow(table, i1, c, i2);
 
-        let b1 = document.createElement("button");
-        b1.appendChild(document.createTextNode(message.args.opt1));
-        b1.setAttribute("id", `bet_button_${message.args.id}_1`);
-
-        let b2 = document.createElement("button");
-        b2.appendChild(document.createTextNode(message.args.opt2));
-        b2.setAttribute("id", `bet_button_${message.args.id}_2`);
-        createBetRow(table, b1, c, b2);
-
-        b1.onclick = betClickHandler;
-        b2.onclick = betClickHandler;
+        createBetRow(table,
+            createButton(message.args.opt1, `bet_button_${message.args.id}_1`, clickBetHandler),
+            c,
+            createButton(message.args.opt2, `bet_button_${message.args.id}_2`, clickBetHandler)
+        );
 
         return table;
     }
@@ -175,7 +205,7 @@
     const open = () => {
         console.log("connecting to ws...")
 
-        ws = new WebSocket("ws:" + location.host + "/echo/"+window.location.search);
+        ws = new WebSocket(`ws:${location.host}/echo/${window.location.search}`);
         ws.onclose = function (e) {
             console.log(e);
             setTimeout(open, 5000);
@@ -195,6 +225,7 @@
                 }
             }
             if (msg.subject === "USER_INFO") {
+                currentUserId = msg.args["Id"];
                 if (msg.flags.includes("CAN_CREATE_PREDICTIONS")) {
                     elCreatePrediction.style.display = "block";
                 }

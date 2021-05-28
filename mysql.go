@@ -6,6 +6,7 @@ import (
 	"fmt"
 	_ "github.com/go-sql-driver/mysql"
 	"log"
+	"math"
 	"time"
 )
 
@@ -28,6 +29,8 @@ const (
 	stmtCreateBet         = "INSERT INTO bets(user_id, prediction_id, amount, on_first_option) VALUES(?,?,?,?)"
 	stmtTakePayment       = "UPDATE bets_users SET balance=balance-? WHERE id=? AND balance>=?"
 	stmtStopAccepting     = "UPDATE predictions SET started_at=NOW() WHERE id=?"
+	stmtPay               = "UPDATE bets_users SET balance=balance+? WHERE id=?"
+	stmtEndPrediction     = "UPDATE predictions SET finished_at=NOW(),opt1_won=? WHERE id=?"
 )
 
 func NewMySQLDB(dataSourceName string) (*MySQLDB, error) {
@@ -132,7 +135,7 @@ func (m *MySQLDB) LoadPredictions() (preds map[uint64]*Prediction, err error) {
 				err = fmt.Errorf("unable to scan bets: %s", err)
 				return
 			}
-			pred.Bets[bet.UserId] = bet
+			pred.UpdateStats(bet)
 		}
 		preds[pred.Id] = pred
 		go pred.WaitAndStopAccepting()
@@ -167,9 +170,9 @@ func (m *MySQLDB) ClosePrediction(prediction *Prediction, opt1Won bool) error {
 
 func (m *MySQLDB) CreateBet(prediction *Prediction, bet *Bet) error {
 	tx, err := m.db.BeginTx(context.TODO(), nil)
-	defer func(){
+	defer func() {
 		err := tx.Rollback()
-		if err != nil {
+		if err != nil && err != sql.ErrTxDone{
 			log.Printf("Unable to rollback: %s", err)
 		}
 	}()
@@ -215,6 +218,64 @@ func (m *MySQLDB) StopAccepting(prediction *Prediction) error {
 		return fmt.Errorf("rows affected: %d", rows)
 	}
 	return nil
+}
+
+func (m *MySQLDB) EndPrediction(prediction *Prediction, opt1Won bool) error {
+	var coef float64
+	var amount int64
+	if opt1Won {
+		coef = prediction.Coef1
+	} else {
+		coef = prediction.Coef2
+	}
+
+	tx, err := m.db.BeginTx(context.TODO(), nil)
+	defer func() {
+		err := tx.Rollback()
+		if err != nil && err != sql.ErrTxDone {
+			log.Printf("Unable to rollback: %s", err)
+		}
+	}()
+	if err != nil {
+		return err
+	}
+	stmtPay, err := tx.Prepare(stmtPay)
+	if err != nil {
+		return err
+	}
+
+	for _, bet := range prediction.Bets {
+		if bet.OnFirstOption == opt1Won {
+			amount = int64(math.Round(float64(bet.Amount) * coef))
+			res, err := stmtPay.Exec(amount, bet.UserId)
+			if err != nil {
+				return err
+			}
+			rows, err := res.RowsAffected()
+			if err != nil {
+				return err
+			}
+			if rows == 0 {
+				return fmt.Errorf("error paying %d to %d", amount, bet.UserId)
+			}
+		}
+	}
+	stmtEndPrediction, err := tx.Prepare(stmtEndPrediction)
+	if err != nil {
+		return err
+	}
+	res, err := stmtEndPrediction.Exec(opt1Won, prediction.Id)
+	if err != nil {
+		return err
+	}
+	rows, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rows == 0 {
+		return fmt.Errorf("unable to end prediction %d", prediction.Id)
+	}
+	return tx.Commit()
 }
 
 func (m *MySQLDB) DeleteBet(prediction *Prediction, uid UID) error {

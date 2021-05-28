@@ -9,16 +9,18 @@ import (
 	"net/http"
 	"strconv"
 	"sync"
+	"time"
 )
 
 const (
-	subjStartPrediction   = "CREATE_PREDICTION"
-	subjBet = "BET"
+	subjStartPrediction = "CREATE_PREDICTION"
+	subjBet             = "BET"
 
-	subjPredictionStarted = "PREDICTION_STARTED"
-	subjBetAccepted       = "BET_ACCEPTED"
-	subjPredictionChanged = "PREDICTION_CHANGED"
-	subjUserInfo          = "USER_INFO"
+	subjPredictionStarted  = "PREDICTION_STARTED"
+	subjBetAccepted        = "BET_ACCEPTED"
+	subjPredictionChanged  = "PREDICTION_CHANGED"
+	subjPredictionFinished = "PREDICTION_FINISHED"
+	subjUserInfo           = "USER_INFO"
 )
 
 const canCreatePredictions = "CAN_CREATE_PREDICTIONS"
@@ -66,18 +68,39 @@ func NewClient(r *http.Request, db DB) (*Client, error) {
 	return client, err
 }
 
-func (c *Client) HandleBet(message *Message) error {
+func getPredictionByMsg(message *Message) (*Prediction, error) {
 	pIdStr, ok := message.Args["id"]
 	if !ok {
-		return errors.New("prediction Id is not set")
+		return nil, errors.New("prediction Id is not set")
 	}
 	pId, err := strconv.ParseInt(pIdStr, 10, 64)
 	if err != nil {
-		return fmt.Errorf("can't parse prediction id: %s", err)
+		return nil, fmt.Errorf("can't parse prediction id: %s", err)
 	}
 	p, ok := activePredictions[uint64(pId)]
 	if !ok {
-		return fmt.Errorf("prediction with id %d not found", pId)
+		return nil, fmt.Errorf("prediction with id %d not found", pId)
+	}
+	return p, nil
+}
+
+func (c *Client) HandlePredictionFinished(message *Message) error {
+	p, err := getPredictionByMsg(message)
+	if err != nil {
+		return err
+	}
+	err = c.db.EndPrediction(p, message.Args["opt1Won"] == "true")
+	if err != nil {
+		return err
+	}
+	delete(activePredictions, p.Id)
+	return err
+}
+
+func (c *Client) HandleBet(message *Message) error {
+	p, err := getPredictionByMsg(message)
+	if err != nil {
+		return err
 	}
 	amount, err := strconv.ParseInt(message.Args["amount"], 10, 64)
 	if err != nil {
@@ -95,7 +118,7 @@ func (c *Client) HandleBet(message *Message) error {
 	c.Logf("bet accepted: %s", bet)
 	msg := &Message{
 		Subject: subjPredictionChanged,
-		Args:    p.CalculateInfo(),
+		Args:    p.GetBetInfoArgs(),
 		Flags:   nil,
 	}
 	clientList.Broadcast(msg)
@@ -137,7 +160,7 @@ func (c *Client) HandleStartPrediction(message *Message) error {
 }
 
 func (c *Client) Logf(format string, args ...interface{}) {
-	log.Printf("%s %s", c, fmt.Sprintf(format, args...))
+	log.Printf("[%s] %s %s", time.Now().Format(time.UnixDate), c, fmt.Sprintf(format, args...))
 }
 
 func (c *Client) HandleMessage(message *Message) error {
@@ -146,6 +169,8 @@ func (c *Client) HandleMessage(message *Message) error {
 		return c.HandleStartPrediction(message)
 	case subjBet:
 		return c.HandleBet(message)
+	case subjPredictionFinished:
+		return c.HandlePredictionFinished(message)
 	}
 	return fmt.Errorf("unknown msg subject: %s", message.Subject)
 }
@@ -164,7 +189,7 @@ func (c *Client) SendActivePredictions() error {
 			c.Logf("error sending prediction: %s", err)
 			return err
 		}
-		msgUpdate.Args = p.CalculateInfo()
+		msgUpdate.Args = p.GetBetInfoArgs()
 		err = c.Conn.WriteJSON(msgUpdate)
 		if err != nil {
 			c.Logf("error sending prediction update: %s", err)
@@ -181,8 +206,11 @@ func (c *Client) SendUserInfo() error {
 	}
 	return c.Conn.WriteJSON(Message{
 		Subject: subjUserInfo,
-		Args:    map[string]string{"gas": fmt.Sprintf("%d", c.Balance)},
-		Flags:   flags,
+		Args: map[string]string{
+			"gas": fmt.Sprintf("%d", c.Balance),
+			"Id":  fmt.Sprintf("%d", c.UserID),
+		},
+		Flags: flags,
 	})
 }
 

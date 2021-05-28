@@ -18,6 +18,7 @@ func (m *Message) FillArgs(p *Prediction) {
 		"opt1":      p.Opt1,
 		"opt2":      p.Opt2,
 		"delay":     fmt.Sprintf("%d", p.StartDelaySeconds),
+		"createdBy": fmt.Sprintf("%d", p.CreatedBy),
 		"createdAt": p.CreatedAt.Format(time.RFC3339),
 		"startedAt": p.StartedAt.Format(time.RFC3339),
 	}

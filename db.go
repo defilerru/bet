@@ -8,4 +8,5 @@ type DB interface {
 	ClosePrediction(prediction *Prediction, opt1Won bool) error
 	GetUserInfo(UID, *int64, *string, *bool) error
 	StopAccepting(prediction *Prediction) error
+	EndPrediction(prediction *Prediction, opt1Won bool) error
 }
