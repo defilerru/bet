@@ -46,7 +46,7 @@ type ClientList struct {
 var clientList ClientList
 var clientListMutex sync.Mutex
 var db *MySQLDB
-var activePredictions map[uint64]*Prediction
+var activePredictions *Predictions
 
 func NewClient(r *http.Request, db DB) (*Client, error) {
 	var uid int64
@@ -77,7 +77,7 @@ func getPredictionByMsg(message *Message) (*Prediction, error) {
 	if err != nil {
 		return nil, fmt.Errorf("can't parse prediction id: %s", err)
 	}
-	p, ok := activePredictions[uint64(pId)]
+	p, ok := activePredictions.PredictionIdMap[uint64(pId)]
 	if !ok {
 		return nil, fmt.Errorf("prediction with id %d not found", pId)
 	}
@@ -93,7 +93,7 @@ func (c *Client) HandlePredictionFinished(message *Message) error {
 	if err != nil {
 		return err
 	}
-	delete(activePredictions, p.Id)
+	activePredictions.Delete(p)
 	return err
 }
 
@@ -147,7 +147,7 @@ func (c *Client) HandleStartPrediction(message *Message) error {
 	if err != nil {
 		return err
 	}
-	activePredictions[p.Id] = p
+	activePredictions.Add(p)
 	c.Logf("prediction started '%s' id:%d", p.Name, p.Id)
 	msg := &Message{
 		Subject: subjPredictionStarted,
@@ -181,8 +181,7 @@ func (c *Client) SendActivePredictions() error {
 	var msgUpdate Message
 	msg.Subject = subjPredictionStarted
 	msgUpdate.Subject = subjPredictionChanged
-	for i, _ := range activePredictions {
-		p := activePredictions[i]
+	for _, p := range activePredictions.Predictions {
 		msg.FillArgs(p)
 		err = c.Conn.WriteJSON(msg)
 		if err != nil {

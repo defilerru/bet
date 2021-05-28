@@ -96,9 +96,12 @@ func (m *MySQLDB) CreatePrediction(prediction *Prediction) error {
 	return err
 }
 
-func (m *MySQLDB) LoadPredictions() (preds map[uint64]*Prediction, err error) {
+func (m *MySQLDB) LoadPredictions() (preds *Predictions, err error) {
 	var betsRows *sql.Rows
-	preds = map[uint64]*Prediction{}
+	preds = &Predictions{
+		PredictionIdMap: map[uint64]*Prediction{},
+		Predictions:     []*Prediction{},
+	}
 	rows, err := m.stmtSelectPredictions.Query()
 	if err != nil {
 		return
@@ -137,7 +140,7 @@ func (m *MySQLDB) LoadPredictions() (preds map[uint64]*Prediction, err error) {
 			}
 			pred.UpdateStats(bet)
 		}
-		preds[pred.Id] = pred
+		preds.Add(pred)
 		go pred.WaitAndStopAccepting()
 	}
 	return

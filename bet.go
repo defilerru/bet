@@ -57,6 +57,28 @@ type Prediction struct {
 	db      DB
 }
 
+type Predictions struct {
+	PredictionIdMap map[uint64]*Prediction
+	Predictions     []*Prediction
+}
+
+func (s *Predictions) Add(p *Prediction) {
+	s.Predictions = append(s.Predictions, p)
+	s.PredictionIdMap[p.Id] = p
+}
+
+func (s *Predictions) Delete(p *Prediction) {
+	delete(s.PredictionIdMap, p.Id)
+	i := 0
+	for s.Predictions[i].Id != p.Id {
+		i++
+	}
+	for i < len(s.Predictions) - 1 {
+		s.Predictions[i] = s.Predictions[i + 1]
+	}
+	s.Predictions = s.Predictions[:i]
+}
+
 type Bet struct {
 	UserId        UID
 	Amount        uint64

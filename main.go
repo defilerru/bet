@@ -43,7 +43,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("unable to load predicionts: %s", err)
 	}
-	log.Printf("%d active predictions loaded", len(activePredictions))
+	log.Printf("%d active predictions loaded", len(activePredictions.Predictions))
 
 	http.HandleFunc("/echo/", echo)
 	fs := http.FileServer(http.Dir("html"))
