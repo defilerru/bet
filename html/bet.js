@@ -1,4 +1,3 @@
-
 (function() {
     //document.cookie = "lol=ok";
 
@@ -16,7 +15,95 @@
     let gasAmountTextNode = document.createTextNode("0");
     let reButtonOdOpt = /bet_button_([0-9]+)_([12])/;
     let reButtonEndPrediction = /end_opt_([12])_([0-9]+)/;
+
+    let predictions = {};
+
     gasAmountP.appendChild(gasAmountTextNode);
+
+    let wsOnMessage = (e) => {
+        let msg = JSON.parse(e.data);
+        console.log(msg);
+        //TODO: handle parse error
+        if (msg.subject === "PREDICTION_STARTED") {
+            predictions[msg.id] = new Prediction(msg);
+        }
+        if (msg.subject === "USER_INFO") {
+            currentUserId = msg.args["Id"];
+            if (msg.flags.includes("CAN_CREATE_PREDICTIONS")) {
+                elCreatePrediction.style.display = "block";
+            }
+        }
+        if (msg.subject === "PREDICTION_CHANGED") {
+            predictions[msg.id].handleChange(msg);
+        }
+    }
+
+    let Prediction = function (message) {
+        this.id = message.args["id"];
+        this.name = message.args["name"];
+        this.infoRow = {};
+
+        let countDown = getCountDown(message);
+        this.table = document.createElement("table");
+        this.table.setAttribute("cellspacing", "0");
+        this.table.setAttribute("cellpadding", "0");
+        let th = createElTextClass(this.table, "th", this.name, "");
+        let cd = createElTextClass(th, "span", countDown, "predCountDown");
+        cd.setAttribute("id", "predCountDown_" + this.id);
+        th.setAttribute("colspan", 3);
+        this.createBetInfoRow("G");
+        this.createBetInfoRow("N");
+        this.createBetInfoRow("P");
+        this.createBetInfoRow("C");
+
+        if (countDown < 1) {
+            if (message.args.createdBy === currentUserId) {
+                createEndPredictionRow(this.table, message.args.opt1, message.args.opt2, message.args.id);
+            }
+        } else {
+            let c = document.createElement("span");
+            let i1 = document.createElement("input");
+            i1.setAttribute("id",`bet_amount_${message.args.id}_1`);
+            i1.value = "10";
+            i1.setAttribute("type", "number");
+
+            let i2 = document.createElement("input");
+            i2.setAttribute("id",`bet_amount_${message.args.id}_2`);
+            i2.value = "10";
+            i2.setAttribute("type", "number");
+            createBetRow(this.table, i1, c, i2);
+            createBetRow(this.table,
+                createButton(message.args.opt1, `bet_button_${message.args.id}_1`, clickBetHandler),
+                c,
+                createButton(message.args.opt2, `bet_button_${message.args.id}_2`, clickBetHandler)
+            );
+        }
+        elPredictionsList.appendChild(this.table);
+        if (tickInterval === null) {
+            tickInterval = setInterval(handleCountdownTick, 1000);
+        }
+    }
+
+    Prediction.prototype.createBetInfoRow = function (name) {
+        let tr = document.createElement("tr");
+        this.infoRow[name] = [
+            {
+                textNode: document.createTextNode("0"),
+                value: 0,
+            }, {
+                textNode: document.createTextNode("0"),
+                value: 0,
+            }
+        ];
+        createAppendEl(tr, "td", this.infoRow[name][0].textNode);
+        createAppendEl(tr, "td", createElTextClass(tr, "span", name, ""));
+        createAppendEl(tr, "td", this.infoRow[name][1].textNode);
+        this.table.appendChild(tr);
+    }
+
+    Prediction.prototype.handleChange = function (msg) {
+
+    }
 
     const createElTextClass = (parent, tagName, text, className) => {
         let el = document.createElement(tagName);
@@ -34,24 +121,6 @@
             el.setAttribute(attr, value);
         }
         return el
-    }
-
-    const setTextPredInfo = (id, val) => {
-        document.getElementById(id).firstChild.textContent = val;
-    }
-
-    const handlePredictionChanged = (msg) => {
-        setTextPredInfo("betInfo1_G_" + msg.args.id, msg.args.amountOpt1);
-        setTextPredInfo("betInfo2_G_" + msg.args.id, msg.args.amountOpt2);
-
-        setTextPredInfo("betInfo1_N_" + msg.args.id, msg.args.ppl1);
-        setTextPredInfo("betInfo2_N_" + msg.args.id, msg.args.ppl2);
-
-        setTextPredInfo("betInfo1_C_" + msg.args.id, msg.args.coef1);
-        setTextPredInfo("betInfo2_C_" + msg.args.id, msg.args.coef2);
-
-        setTextPredInfo("betInfo1_P_" + msg.args.id, msg.args.per1);
-        setTextPredInfo("betInfo2_P_" + msg.args.id, msg.args.per2);
     }
 
     const clickEndPredictionHandler = (e) => {
@@ -121,15 +190,7 @@
     }
 
     const createBetInfoRow = (table, name, id) => {
-        let tr = document.createElement("tr");
-        let s1 = createElTextClass(tr, "span", "-", name + "_1");
-        let s2 = createElTextClass(tr, "span", "-", name + "_2");
-        s1.setAttribute("id",`betInfo1_${name}_${id}`);
-        s2.setAttribute("id",`betInfo2_${name}_${id}`);
-        createAppendEl(tr, "td", s1);
-        createAppendEl(tr, "td", createElTextClass(tr, "span", name, ""));
-        createAppendEl(tr, "td", s2);
-        table.appendChild(tr);
+
     }
 
     const getCountDown = (m) => {
@@ -159,49 +220,6 @@
         return table;
     }
 
-    const createPredictionElement = (message) => {
-        let countDown = getCountDown(message);
-        let table = document.createElement("table");
-        table.setAttribute("cellspacing", "0");
-        table.setAttribute("cellpadding", "0");
-        let th = createElTextClass(table, "th", message.args.name, "");
-        let cd = createElTextClass(th, "span", countDown, "predCountDown");
-        cd.setAttribute("id", "predCountDown_" + message.args.id);
-        th.setAttribute("colspan", 3);
-        createBetInfoRow(table, "G", message.args.id);
-        createBetInfoRow(table, "N", message.args.id);
-        createBetInfoRow(table, "P", message.args.id);
-        createBetInfoRow(table, "C", message.args.id);
-
-        let c = document.createElement("span");
-
-        if (countDown <= 0) {
-            if (message.args.createdBy === currentUserId) {
-                createEndPredictionRow(table, message.args.opt1, message.args.opt2, message.args.id);
-            }
-            return table;
-        }
-
-        let i1 = document.createElement("input");
-        i1.setAttribute("id",`bet_amount_${message.args.id}_1`);
-        i1.value = "10";
-        i1.setAttribute("type", "number");
-
-        let i2 = document.createElement("input");
-        i2.setAttribute("id",`bet_amount_${message.args.id}_2`);
-        i2.value = "10";
-        i2.setAttribute("type", "number");
-        createBetRow(table, i1, c, i2);
-
-        createBetRow(table,
-            createButton(message.args.opt1, `bet_button_${message.args.id}_1`, clickBetHandler),
-            c,
-            createButton(message.args.opt2, `bet_button_${message.args.id}_2`, clickBetHandler)
-        );
-
-        return table;
-    }
-
     const open = () => {
         console.log("connecting to ws...")
 
@@ -214,26 +232,7 @@
                 elPredictionsList.removeChild(elPredictionsList.firstChild);
             }
         }
-        ws.onmessage = function (e) {
-            let msg = JSON.parse(e.data);
-            console.log(msg);
-            //TODO: handle parse error
-            if (msg.subject === "PREDICTION_STARTED") {
-                let de = elPredictionsList.appendChild(createPredictionElement(msg));
-                if (tickInterval === null) {
-                    tickInterval = setInterval(handleCountdownTick, 1000);
-                }
-            }
-            if (msg.subject === "USER_INFO") {
-                currentUserId = msg.args["Id"];
-                if (msg.flags.includes("CAN_CREATE_PREDICTIONS")) {
-                    elCreatePrediction.style.display = "block";
-                }
-            }
-            if (msg.subject === "PREDICTION_CHANGED") {
-                handlePredictionChanged(msg);
-            }
-        }
+        ws.onmessage = wsOnMessage;
         ws.onopen = function (e) {
             console.log(e);
         }
