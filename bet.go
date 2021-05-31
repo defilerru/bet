@@ -75,6 +75,7 @@ func (s *Predictions) Delete(p *Prediction) {
 	}
 	for i < len(s.Predictions) - 1 {
 		s.Predictions[i] = s.Predictions[i + 1]
+		i++
 	}
 	s.Predictions = s.Predictions[:i]
 }
