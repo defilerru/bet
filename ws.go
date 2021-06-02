@@ -85,15 +85,26 @@ func getPredictionByMsg(message *Message) (*Prediction, error) {
 }
 
 func (c *Client) HandlePredictionFinished(message *Message) error {
+	var msg *Message
 	p, err := getPredictionByMsg(message)
 	if err != nil {
 		return err
 	}
-	err = c.db.EndPrediction(p, message.Args["opt1Won"] == "true")
+	p.Opt1Won = message.Args["opt1Won"] == "true"
+	err = c.db.EndPrediction(p)
 	if err != nil {
 		return err
 	}
 	activePredictions.Delete(p)
+	msg = &Message{
+		Subject: subjPredictionFinished,
+		Args: map[string]string{
+			"id": fmt.Sprintf("%d", p.Id),
+			"opt1Won": fmt.Sprintf("%t", p.Opt1Won),
+		},
+		Flags:   []string{},
+	}
+	clientList.Broadcast(msg)
 	return err
 }
 
@@ -207,7 +218,7 @@ func (c *Client) SendUserInfo() error {
 		Subject: subjUserInfo,
 		Args: map[string]string{
 			"gas": fmt.Sprintf("%d", c.Balance),
-			"Id":  fmt.Sprintf("%d", c.UserID),
+			"id":  fmt.Sprintf("%d", c.UserID),
 		},
 		Flags: flags,
 	})

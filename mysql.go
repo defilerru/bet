@@ -223,10 +223,10 @@ func (m *MySQLDB) StopAccepting(prediction *Prediction) error {
 	return nil
 }
 
-func (m *MySQLDB) EndPrediction(prediction *Prediction, opt1Won bool) error {
+func (m *MySQLDB) EndPrediction(prediction *Prediction) error {
 	var coef float64
 	var amount int64
-	if opt1Won {
+	if prediction.Opt1Won {
 		coef = prediction.Coef1
 	} else {
 		coef = prediction.Coef2
@@ -248,7 +248,7 @@ func (m *MySQLDB) EndPrediction(prediction *Prediction, opt1Won bool) error {
 	}
 
 	for _, bet := range prediction.Bets {
-		if bet.OnFirstOption == opt1Won {
+		if bet.OnFirstOption == prediction.Opt1Won {
 			amount = int64(math.Round(float64(bet.Amount) * coef))
 			res, err := stmtPay.Exec(amount, bet.UserId)
 			if err != nil {
@@ -267,7 +267,7 @@ func (m *MySQLDB) EndPrediction(prediction *Prediction, opt1Won bool) error {
 	if err != nil {
 		return err
 	}
-	res, err := stmtEndPrediction.Exec(opt1Won, prediction.Id)
+	res, err := stmtEndPrediction.Exec(prediction.Opt1Won, prediction.Id)
 	if err != nil {
 		return err
 	}

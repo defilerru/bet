@@ -22,9 +22,13 @@ input { border: 1px solid; }
 #betPredictionList span.predictionId { color: red; }
 
 #betPredictionList table { border: 1px solid; width: 100%; }
-#betPredictionList table td:nth-child(1) { text-align: right; width: 45%; }
-#betPredictionList table td:nth-child(2) { text-align: center; white-space: nowrap; border-left: 1px solid; border-right: 1px solid; }
-#betPredictionList table td:nth-child(3) { text-align: left; width: 45%; }
+#betPredictionList table td:nth-child(1)  { text-align: right; width: 45%; }
+#betPredictionList table td:nth-child(2)  { text-align: center; white-space: nowrap; border-left: 1px solid; border-right: 1px solid; }
+#betPredictionList table td:nth-child(3)  { text-align: left; width: 45%; }
+
+#betPredictionList tr.predictionName p { text-align: center; }
+#betPredictionList tr.predictionCountdown { text-align: center; font-size: 9pt; }
+#betPredictionList span.predictionWinner { color: red; }
 
 #betPredictionList input { width: 90%; }
 #betPredictionList button { width: 90%; }
